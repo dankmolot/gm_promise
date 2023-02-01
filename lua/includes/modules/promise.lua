@@ -43,6 +43,7 @@ local ipairs = ipairs
 local assert = assert
 local Either = Either
 local pcall = pcall
+local error = error
 local _HTTP = HTTP
 
 module( "promise" )
@@ -195,7 +196,7 @@ do
         self._processed = true
 
         local result = self:GetResult()
-        assert(self:IsFulfilled(), result)
+        if self:IsRejected() then error(result, 2) end
 
         return result
     end
