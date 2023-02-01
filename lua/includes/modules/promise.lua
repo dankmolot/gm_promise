@@ -192,6 +192,8 @@ do
             coroutine.yield()
         end
 
+        self._processed = true
+
         local result = self:GetResult()
         assert(self:IsFulfilled(), result)
 
