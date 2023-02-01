@@ -40,7 +40,6 @@ local coroutine = coroutine
 local tostring = tostring
 local istable = istable
 local ipairs = ipairs
-local assert = assert
 local Either = Either
 local pcall = pcall
 local error = error
@@ -179,9 +178,9 @@ do
         return self:Then(nil, onReject)
     end
 
-    function PROMISE:Await()
+    function PROMISE:SafeAwait()
         local co = coroutine.running()
-        assert(co, ":Await() only works in coroutines or async functions!")
+        if not co then return false, ":Await() only works in coroutines or async functions!" end
 
         if self:IsPending() then
             local function resume()
@@ -194,9 +193,12 @@ do
         end
 
         self._processed = true
+        return self:IsFulfilled(), self:GetResult()
+    end
 
-        local result = self:GetResult()
-        if self:IsRejected() then error(result, 2) end
+    function PROMISE:Await()
+        local ok, result = self:SafeAwait()
+        if not ok then error(result, 2) end
 
         return result
     end
@@ -258,6 +260,10 @@ function Async(func)
 
         return p
     end
+end
+
+function SafeAwait(p)
+    if IsPromise(p) then return p:SafeAwait() end
 end
 
 function Await(p)
