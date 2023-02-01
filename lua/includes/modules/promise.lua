@@ -267,12 +267,12 @@ end
 
 function Resolve(value)
     if IsPromise(value) then return value end
-    return Promise(function(resolve) resolve(value) end)
+    return New(function(resolve) resolve(value) end)
 end
 
 function Reject(err)
     if IsPromise(value) then return value end
-    return Promise(function(_, reject) reject(err) end)
+    return New(function(_, reject) reject(err) end)
 end
 
 function All(promises)
