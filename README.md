@@ -15,7 +15,7 @@ If you are familiar with promises from JS, then this library will be easy to lea
 * Errors inside async will have error line prepended, see [Notes](#notes) for more information.
 * Errors doesn't have stacktrace
 * Since in lua we don't have syntax `async function`, async functions created using function `promise.Async(function() ... end)`
-* `PromiseObject:Await()` isn't safe to use, and throws and errors. To handle errors in await use `PromiseObject:SafeAwait()`
+* `PromiseObject:Await()` isn't safe to use, and throws errors. To handle errors and use await use `PromiseObject:SafeAwait()`
 
 
 ## API
