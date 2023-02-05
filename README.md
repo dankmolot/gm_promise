@@ -170,7 +170,7 @@ promise.Async(function(firstName, lastName)
     return "Hello", firstName, lastName -- Async function will only return "Hello"
 end)
 
--- Right
+-- Good
 promise.New(function(resolve)
     resolve("hello world") -- Promise will return "hello world"
 end)
