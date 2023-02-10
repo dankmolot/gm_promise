@@ -80,7 +80,7 @@ do
     function PROMISE:_ProcessQueue()
         if self:IsPending() then return end
         if not self._processed and #self._queue == 0 and self:GetResult() ~= nil then
-            if self:IsRejected() then ErrorNoHalt("Unhandler promise error: " .. tostring(self:GetResult()) .. "\n\n") end
+            if self:IsRejected() then ErrorNoHalt("Unhandled promise error: " .. tostring(self:GetResult()) .. "\n\n") end
             return
         end
 
