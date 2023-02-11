@@ -47,8 +47,8 @@ local _HTTP = HTTP
 
 module( "promise" )
 
-_VERSION = "1.0.0" -- major.minor.patch
-_VERSION_NUM = 010000 -- _VERSION in number format: 1.2.3 -> 010203 | 99.56.13 -> 995613
+_VERSION = "1.1.0" -- major.minor.patch
+_VERSION_NUM = 010100 -- _VERSION in number format: 1.2.3 -> 010203 | 99.56.13 -> 995613
 
 -- Promise object
 do
@@ -264,10 +264,12 @@ end
 
 function SafeAwait(p)
     if IsPromise(p) then return p:SafeAwait() end
+    return true, p
 end
 
 function Await(p)
     if IsAwaitable(p) then return p:Await() end
+    return p
 end
 
 function Delay(time)
