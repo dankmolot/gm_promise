@@ -97,7 +97,7 @@ do
                 ok, result = self:IsFulfilled(), self:GetResult()
             end
 
-            if ok and self:IsFulfilled() then
+            if ok then
                 promise:Resolve(result)
             else
                 promise:Reject(result)
