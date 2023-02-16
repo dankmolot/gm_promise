@@ -196,9 +196,11 @@ do
         return self:IsFulfilled(), self:GetResult()
     end
 
-    function PROMISE:Await()
+    function PROMISE:Await(ignoreErrors)
         local ok, result = self:SafeAwait()
-        if not ok then error(result, 2) end
+        if not ok then
+            if not ignoreErrors then return error(result, 2) end
+        return end
 
         return result
     end
@@ -267,8 +269,8 @@ function SafeAwait(p)
     return true, p
 end
 
-function Await(p)
-    if IsAwaitable(p) then return p:Await() end
+function Await(p, ignoreErrors)
+    if IsAwaitable(p) then return p:Await(ignoreErrors) end
     return p
 end
 

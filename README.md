@@ -110,8 +110,8 @@ bool promise.IsPromise(obj: any)
 -- Same as coroutine.running()
 thread promise.RunningInAsync()
 
--- Alias to PromiseObject:Await()
-promise.Await(promise: PromiseObject)
+-- Alias to PromiseObject:Await(...)
+promise.Await(promise: PromiseObject, ignoreErrors?: bool)
 
 -- Alias to PromiseObject:SafeAwait()
 promise.SafeAwait(promise: PromiseObject)
@@ -139,9 +139,10 @@ PromiseObject PromiseObject:Catch(onRejected?: function)
 -- Waits until promise become resolved and returns its value
 -- If promise becomes rejected, then :Await() throws an error
 -- It is better to catch error with :SafeAwait(), see notes for more information
+-- If ignoreErrors passed, then just returns nil when error occurs
 --
 -- NB! Can only be used in async function or coroutine
-any PromiseObject:Await()
+any PromiseObject:Await(ignoreErrors?: bool)
 
 -- Waits until promise become resolved and returns true and its value
 -- If promise becomes rejected, then returns false and error message (rejected value)
