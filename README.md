@@ -11,7 +11,7 @@ If you are familiar with promises from JS, then this library will be easy to lea
     * `Promise.reject(reason)` -> `promise.Reject(reason)`
     * `Promise.prototype.then(onFulfilled?, onRejected?)` -> `PromiseObject:Then(onFulfilled?, onRejected?)`
     * `Promise.prototype.catch(onRejected?)` -> `PromiseObject:Catch(onRejected?)`
-* There currently no `promise.AllSettled`, `promise.Any`, `promise.Race` and `PromiseObject:Finally(...)` methods
+* There currently no `promise.AllSettled`, `promise.Any` and `PromiseObject:Finally(...)` methods
 * Errors inside async will have error line prepended, see [Notes](#notes) for more information.
 * Errors doesn't have stacktrace
 * Since in lua we don't have syntax `async function`, async functions created using function `promise.Async(function() ... end)`
@@ -72,6 +72,15 @@ PromiseObject promise.Reject(reason: any)
 --              :Then(util.TableToJSON)
 --              :Then(print) -- ["Hello","World"]
 PromiseObject promise.All(promises: table)
+
+-- Returns a promise that will be fulfilled/rejected with first promise.
+-- Example:
+--          local promises = {
+--              promise.Delay(2):Then(function() return "Slow!" end),
+--              promise.Delay(1):Then(function() return "Fast!" end)
+--          }
+--
+--          promise.Race(promises):Then(print) -- Fast!
 
 -- Returns a promise that resolves after specified time in seconds
 -- Same as: promise.New(function(resolve) timer.Simple(time, resolve) end)

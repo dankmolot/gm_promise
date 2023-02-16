@@ -323,6 +323,28 @@ function All(promises)
     return new_promise
 end
 
+function Race(promises)
+    if #promises == 0 then return Resolve({}) end
+
+    local new_promise = New()
+
+    local onFulfill = function(result)
+        if new_promise:IsPending() then new_promise:Resolve(result) end
+    end
+
+    local onReject = function(err)
+        if new_promise:IsPending() then new_promise:Reject(err) end
+    end
+
+    for i, p in ipairs(promises) do
+        if IsThenable(p) then
+            p:Then(onFulfill, onReject)
+        end
+    end
+
+    return new_promise
+end
+
 -- Async version of HTTP
 function HTTP(parameters)
     local p = New()
