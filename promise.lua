@@ -176,46 +176,46 @@ do -- 45
 			else -- 128
 				return self:_Fulfill(value) -- 128
 			end -- 113
-		end, -- 130
-		Reject = function(self, reason) -- 130
-			if not (self.state == self.STATE_PENDING) then -- 131
-				return -- 131
-			end -- 131
-			self.state = self.STATE_REJECTED -- 132
-			self.reason = reason -- 133
-			return self:_Finalize() -- 134
-		end, -- 136
-		Then = function(self, on_fulfilled, on_rejected, on_finally) -- 136
-			local p = Promise() -- 137
-			if iscallable(on_fulfilled) then -- 138
-				p.on_fulfilled = on_fulfilled -- 138
-			end -- 138
-			if iscallable(on_rejected) then -- 139
-				p.on_rejected = on_rejected -- 139
-			end -- 139
-			if iscallable(on_finally) then -- 140
-				p.on_finally = on_finally -- 140
-			end -- 140
-			if not self.queue then -- 141
-				self.queue = { } -- 141
-			end -- 141
-			do -- 142
-				local _obj_0 = self.queue -- 142
-				_obj_0[#_obj_0 + 1] = p -- 142
+		end, -- 132
+		Reject = function(self, reason) -- 132
+			if not (self.state == self.STATE_PENDING) then -- 133
+				return -- 133
+			end -- 133
+			self.state = self.STATE_REJECTED -- 134
+			self.reason = reason -- 135
+			return self:_Finalize() -- 136
+		end, -- 140
+		Then = function(self, on_fulfilled, on_rejected, on_finally) -- 140
+			local p = Promise() -- 141
+			if iscallable(on_fulfilled) then -- 142
+				p.on_fulfilled = on_fulfilled -- 142
 			end -- 142
-			self:_Finalize() -- 143
-			return p -- 144
-		end, -- 146
-		Catch = function(self, on_rejected) -- 146
-			return self:Then(nil, on_rejected) -- 146
-		end, -- 147
-		Finally = function(self, on_finally) -- 147
-			return self:Then(nil, nil, on_finally) -- 147
+			if iscallable(on_rejected) then -- 143
+				p.on_rejected = on_rejected -- 143
+			end -- 143
+			if iscallable(on_finally) then -- 144
+				p.on_finally = on_finally -- 144
+			end -- 144
+			if not self.queue then -- 145
+				self.queue = { } -- 145
+			end -- 145
+			do -- 146
+				local _obj_0 = self.queue -- 146
+				_obj_0[#_obj_0 + 1] = p -- 146
+			end -- 146
+			self:_Finalize() -- 147
+			return p -- 148
+		end, -- 154
+		Catch = function(self, on_rejected) -- 154
+			return self:Then(nil, on_rejected) -- 154
+		end, -- 155
+		Finally = function(self, on_finally) -- 155
+			return self:Then(nil, nil, on_finally) -- 155
 		end -- 45
 	} -- 45
 	if _base_0.__index == nil then -- 45
 		_base_0.__index = _base_0 -- 45
-	end -- 209
+	end -- 231
 	_class_0 = setmetatable({ -- 45
 		__init = function(self, executor) -- 52
 			self.state = self.STATE_PENDING -- 53
@@ -252,107 +252,120 @@ do -- 45
 	}) -- 45
 	_base_0.__class = _class_0 -- 45
 	local self = _class_0; -- 45
-	self.Resolve = function(value) -- 149
-		local _with_0 = Promise() -- 150
-		_with_0:Resolve(value) -- 151
-		return _with_0 -- 150
-	end -- 149
-	self.Reject = function(reason) -- 153
-		local _with_0 = Promise() -- 154
-		_with_0:Reject(reason) -- 155
-		return _with_0 -- 154
-	end -- 153
-	self.All = function(promises) -- 157
-		local p = Promise() -- 158
-		local count = #promises -- 159
-		local values = { } -- 160
-		if count == 0 then -- 161
-			p:Resolve(values) -- 161
-		end -- 161
-		for i, promise in ipairs(promises) do -- 162
-			if Promise.IsPromise(promise) then -- 163
-				promise:Then(function(value) -- 164
-					values[i] = value -- 165
-					count = count - 1 -- 166
-					if count == 0 then -- 167
-						return p:Resolve(values) -- 167
-					end -- 167
-				end, function(self, reason) -- 168
-					return p:Reject(reason) -- 168
-				end) -- 164
-			else -- 170
-				values[i] = promise -- 170
-				count = count - 1 -- 171
-				if count == 0 then -- 172
-					p:Resolve(values) -- 172
-				end -- 172
-			end -- 163
-		end -- 172
-		return p -- 173
-	end -- 157
-	self.AllSettled = function(promises) -- 175
-		local p = Promise() -- 176
-		local count = #promises -- 177
-		local values = { } -- 178
-		if count == 0 then -- 179
-			p:Resolve(values) -- 179
-		end -- 179
-		for i, promise in ipairs(promises) do -- 180
-			promise:Then(function(value) -- 181
-				values[i] = { -- 182
-					status = "fulfilled", -- 182
-					value = value -- 182
-				} -- 182
-				count = count - 1 -- 183
-				if count == 0 then -- 184
-					return p:Resolve(values) -- 184
-				end -- 184
-			end, function(reason) -- 185
-				values[i] = { -- 186
-					status = "rejected", -- 186
-					reason = reason -- 186
-				} -- 186
-				count = count - 1 -- 187
-				if count == 0 then -- 188
-					return p:Resolve(values) -- 188
-				end -- 188
-			end) -- 181
-		end -- 188
-		return p -- 189
-	end -- 175
-	self.Any = function(promises) -- 191
+	self.__base.resolve = self.__base.Resolve -- 130
+	self.__base.reject = self.__base.Reject -- 138
+	self.__base["then"] = self.__base.Then -- 150
+	self.__base.next = self.__base.Then -- 151
+	self.__base.andThen = self.__base.Then -- 152
+	self.__base.catch = self.__base.Catch -- 156
+	self.__base.finally = self.__base.Finally -- 157
+	self.Resolve = function(value) -- 159
+		local _with_0 = Promise() -- 160
+		_with_0:Resolve(value) -- 161
+		return _with_0 -- 160
+	end -- 159
+	self.resolve = self.Resolve -- 163
+	self.Reject = function(reason) -- 165
+		local _with_0 = Promise() -- 166
+		_with_0:Reject(reason) -- 167
+		return _with_0 -- 166
+	end -- 165
+	self.reject = self.Reject -- 169
+	self.All = function(promises) -- 171
+		local p = Promise() -- 172
+		local count = #promises -- 173
+		local values = { } -- 174
+		if count == 0 then -- 175
+			p:Resolve(values) -- 175
+		end -- 175
+		for i, promise in ipairs(promises) do -- 176
+			if Promise.IsPromise(promise) then -- 177
+				promise:Then(function(value) -- 178
+					values[i] = value -- 179
+					count = count - 1 -- 180
+					if count == 0 then -- 181
+						return p:Resolve(values) -- 181
+					end -- 181
+				end, function(self, reason) -- 182
+					return p:Reject(reason) -- 182
+				end) -- 178
+			else -- 184
+				values[i] = promise -- 184
+				count = count - 1 -- 185
+				if count == 0 then -- 186
+					p:Resolve(values) -- 186
+				end -- 186
+			end -- 177
+		end -- 186
+		return p -- 187
+	end -- 171
+	self.all = self.All -- 189
+	self.AllSettled = function(promises) -- 191
 		local p = Promise() -- 192
 		local count = #promises -- 193
-		local reasons = { } -- 194
+		local values = { } -- 194
 		if count == 0 then -- 195
-			p:Reject("No promises to resolve") -- 195
+			p:Resolve(values) -- 195
 		end -- 195
 		for i, promise in ipairs(promises) do -- 196
 			promise:Then(function(value) -- 197
-				return p:Resolve(value, function(reason) -- 198
-					reasons[i] = reason -- 199
-					count = count - 1 -- 200
-					if count == 0 then -- 201
-						return p:Resolve(reasons) -- 201
-					end -- 201
-				end) -- 201
+				values[i] = { -- 198
+					status = "fulfilled", -- 198
+					value = value -- 198
+				} -- 198
+				count = count - 1 -- 199
+				if count == 0 then -- 200
+					return p:Resolve(values) -- 200
+				end -- 200
+			end, function(reason) -- 201
+				values[i] = { -- 202
+					status = "rejected", -- 202
+					reason = reason -- 202
+				} -- 202
+				count = count - 1 -- 203
+				if count == 0 then -- 204
+					return p:Resolve(values) -- 204
+				end -- 204
 			end) -- 197
-		end -- 201
-		return p -- 202
+		end -- 204
+		return p -- 205
 	end -- 191
-	self.Race = function(promises) -- 204
-		local p = Promise() -- 205
-		for _index_0 = 1, #promises do -- 206
-			local promise = promises[_index_0] -- 206
-			promise:Then(function(value) -- 207
-				return p:Resolve(value, function(reason) -- 208
-					return p:Reject(reason) -- 208
-				end) -- 208
-			end) -- 207
-		end -- 208
-		return p -- 209
-	end -- 204
+	self.allSettled = self.AllSettled -- 207
+	self.Any = function(promises) -- 209
+		local p = Promise() -- 210
+		local count = #promises -- 211
+		local reasons = { } -- 212
+		if count == 0 then -- 213
+			p:Reject("No promises to resolve") -- 213
+		end -- 213
+		for i, promise in ipairs(promises) do -- 214
+			promise:Then(function(value) -- 215
+				return p:Resolve(value, function(reason) -- 216
+					reasons[i] = reason -- 217
+					count = count - 1 -- 218
+					if count == 0 then -- 219
+						return p:Resolve(reasons) -- 219
+					end -- 219
+				end) -- 219
+			end) -- 215
+		end -- 219
+		return p -- 220
+	end -- 209
+	self.any = self.Any -- 222
+	self.Race = function(promises) -- 224
+		local p = Promise() -- 225
+		for _index_0 = 1, #promises do -- 226
+			local promise = promises[_index_0] -- 226
+			promise:Then(function(value) -- 227
+				return p:Resolve(value, function(reason) -- 228
+					return p:Reject(reason) -- 228
+				end) -- 228
+			end) -- 227
+		end -- 228
+		return p -- 229
+	end -- 224
+	self.race = self.Race -- 231
 	Promise = _class_0 -- 45
-end -- 209
-_module_0 = Promise -- 211
-return _module_0 -- 211
+end -- 231
+_module_0 = Promise -- 233
+return _module_0 -- 233
