@@ -131,15 +131,11 @@ class Promise
         else
             @_Fulfill value
 
-    @__base.resolve = @__base.Resolve
-
     Reject: (reason) =>
         return unless @state == @STATE_PENDING
         @state = @STATE_REJECTED
         @reason = reason
         @_Finalize!
-
-    @__base.reject = @__base.Reject
 
     Then: (on_fulfilled, on_rejected, on_finally) =>
         p = Promise!
@@ -150,27 +146,17 @@ class Promise
         @queue[] = p
         @_Finalize!
         return p
-
-    @__base.then = @__base.Then
-    @__base.next = @__base.Then
-    @__base.andThen = @__base.Then
     
     Catch: (on_rejected) => @Then nil, on_rejected
     Finally: (on_finally) => @Then nil, nil, on_finally
-    @__base.catch = @__base.Catch
-    @__base.finally = @__base.Finally
     
     @Resolve: (value) -> 
         with Promise!
             \Resolve value
-
-    @resolve: @Resolve
     
     @Reject: (reason) ->
         with Promise!
             \Reject reason
-
-    @reject: @Reject
 
     @All: (promises) ->
         p = Promise!
@@ -190,8 +176,6 @@ class Promise
                 p\Resolve values if count == 0
         return p
 
-    @all: @All
-
     @AllSettled: (promises) ->
         p = Promise!
         count = #promises
@@ -207,8 +191,6 @@ class Promise
                     count -= 1
                     p\Resolve values if count == 0
         return p
-
-    @allSettled: @AllSettled
     
     @Any: (promises) ->
         p = Promise!
@@ -223,16 +205,12 @@ class Promise
                     p\Resolve reasons if count == 0
         return p
 
-    @any: @Any
-
     @Race: (promises) ->
         p = Promise!
         for promise in *promises
             promise\Then (value) -> p\Resolve value,
                 (reason) -> p\Reject reason
         return p
-
-    @race: @Race
 
     @Async: (fn) -> (...) ->
         p = Promise!
@@ -245,8 +223,6 @@ class Promise
 
         coroutine.resume co, ...
         return p
-
-    @async: @Async
 
     SafeAwait: (p) ->
         co = coroutine.running!
@@ -273,14 +249,28 @@ class Promise
                 return true, p
         else
             return true, p
-
-    @__base.saveAwait = @__base.SafeAwait
     
     Await: (p) ->
         ok, result = Promise.SafeAwait p
         if ok then return result
         else error result
 
+    -- Methods renames
     @__base.await = @__base.Await
+    @__base.resolve = @__base.Resolve
+    @__base.reject = @__base.Reject
+    @__base.then = @__base.Then
+    @__base.next = @__base.Then
+    @__base.andThen = @__base.Then
+    @__base.catch = @__base.Catch
+    @__base.finally = @__base.Finally
+    @__base.saveAwait = @__base.SafeAwait
+    @resolve: @Resolve
+    @reject: @Reject
+    @all: @All
+    @allSettled: @AllSettled
+    @any: @Any
+    @race: @Race
+    @async: @Async
 
 export default Promise
