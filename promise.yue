@@ -29,8 +29,11 @@ iscallable = (obj) ->
         meta = getmetatable obj
         return istable(meta) and isfunction(meta.__call)
 get_thenable = (obj) ->
-    then_fn = obj.Then
+    then_fn = obj.Then or obj.next
     iscallable(then_fn) and then_fn
+get_awaitable = (obj) ->
+    awaitable = obj.Await or obj.await
+    iscallable(awaitable) and awaitable
 
 nextTick = (fn) -> timer.Simple(0, fn)
 
@@ -55,15 +58,20 @@ class Promise
 
     new: (executor) =>
         @state = @STATE_PENDING
+        @resolving = false
         @value = nil
         @reason = nil
         @queue = nil -- Queue is created only if then called in pending state
 
         if iscallable executor
+            @resolving = true
+            once_wrapper = once!
+            onFulfill = once_wrapper (value) -> @_Resolve value
+            onReject = once_wrapper (reason) -> @_Reject reason
             try
-                executor @\Resolve, @\Reject
+                executor onFulfill, onReject
             catch err
-                @\Reject err
+                onReject err
 
     __tostring: =>
         ptr = string.format "%p", @
@@ -80,14 +88,14 @@ class Promise
     _FinalizePromise: (p) =>
         try
             if @state == @STATE_FULFILLED
-                if p.on_fulfilled then p\Resolve p.on_fulfilled @value
-                else p\Resolve @value
+                if p.on_fulfilled then p\_Resolve p.on_fulfilled @value
+                else p\_Resolve @value
             elseif @state == @STATE_REJECTED
-                if p.on_rejected then p\Resolve p.on_rejected @reason
-                else p\Reject @reason
+                if p.on_rejected then p\_Resolve p.on_rejected @reason
+                else p\_Reject @reason
             if p.on_finally then p.on_finally!
         catch err
-            p\Reject err
+            p\_Reject err
 
     _Finalize: =>
         return if @state == @STATE_PENDING
@@ -104,16 +112,18 @@ class Promise
 
     _ResolveThenable: (obj, thenable) =>
         once_wrapper = once!
-        onFulfill = once_wrapper (value) -> @Resolve value
-        onReject = once_wrapper (reason) -> @Reject reason
+        onFulfill = once_wrapper (value) -> @_Resolve value
+        onReject = once_wrapper (reason) -> @_Reject reason
         unless ok, err = try thenable obj, onFulfill, onReject
             onReject err
 
-    Resolve: (value) =>
-        return unless @state == @STATE_PENDING
-        return @Reject "Cannot resolve a promise with itself" if value == @ -- TODO use TypeError object
+    _Resolve: (value) =>
+        return if @state != @STATE_PENDING
+        return @_Reject "Cannot resolve a promise with itself" if value == @ -- TODO use TypeError object
+        @resolving = true
         @on_fulfilled = nil
         @on_rejected = nil
+        @on_finally = nil
         if @.IsPromise value
             if value.state == @STATE_PENDING
                 value.queue = {} unless value.queue
@@ -122,7 +132,7 @@ class Promise
                 value\_FinalizePromise @
         elseif istable value
             ok, thenable = try get_thenable value
-            unless ok then return @\Reject thenable
+            unless ok then return @\_Reject thenable
 
             if thenable
                 @_ResolveThenable value, thenable
@@ -131,11 +141,18 @@ class Promise
         else
             @_Fulfill value
 
-    Reject: (reason) =>
+    Resolve: (value) =>
+        return if @resolving
+        @_Resolve value
+
+    _Reject: (reason) =>
         return unless @state == @STATE_PENDING
         @state = @STATE_REJECTED
         @reason = reason
         @_Finalize!
+
+    Reject: (reason) =>
+        @_Reject reason unless @resolving
 
     Then: (on_fulfilled, on_rejected, on_finally) =>
         p = Promise!
@@ -241,7 +258,7 @@ class Promise
                 else
                     p\Then onResolve, onReject
                     return coroutine.yield!
-        elseif thenable = get_thenable p
+        elseif thenable = istable(p) and get_thenable p
             if iscallable thenable
                 try thenable p, onResolve, onReject
                 return coroutine.yield!
@@ -251,12 +268,15 @@ class Promise
             return true, p
     
     Await: (p) ->
+        awaitable = istable(p) and get_awaitable p
+        if awaitable and not Promise.IsPromise p
+            return awaitable p
+
         ok, result = Promise.SafeAwait p
         if ok then return result
         else error result
 
     -- Methods renames
-    @__base.await = @__base.Await
     @__base.resolve = @__base.Resolve
     @__base.reject = @__base.Reject
     @__base.then = @__base.Then
@@ -265,6 +285,7 @@ class Promise
     @__base.catch = @__base.Catch
     @__base.finally = @__base.Finally
     @__base.saveAwait = @__base.SafeAwait
+    @__base.await = @__base.Await
     @resolve: @Resolve
     @reject: @Reject
     @all: @All
