@@ -205,11 +205,57 @@ do -- 45
 		end, -- 159
 		Finally = function(self, on_finally) -- 159
 			return self:Then(nil, nil, on_finally) -- 159
+		end, -- 251
+		SafeAwait = function(p) -- 251
+			local co = coroutine.running() -- 252
+			if not co then -- 253
+				return false, "Cannot await in main thread" -- 253
+			end -- 253
+			local once_wrapper = once() -- 255
+			local onResolve = once_wrapper(function(value) -- 256
+				return coroutine.resume(co, true, value) -- 256
+			end) -- 256
+			local onReject = once_wrapper(function(reason) -- 257
+				return coroutine.resume(co, false, reason) -- 257
+			end) -- 257
+			if Promise.IsPromise(p) then -- 259
+				local _exp_0 = p.state -- 260
+				if p.STATE_FULFILLED == _exp_0 then -- 261
+					return true, p.value -- 262
+				elseif p.STATE_REJECTED == _exp_0 then -- 263
+					return false, p.reason -- 264
+				else -- 266
+					p:Then(onResolve, onReject) -- 266
+					return coroutine.yield() -- 267
+				end -- 267
+			else -- 268
+				do -- 268
+					local thenable = get_thenable(p) -- 268
+					if thenable then -- 268
+						if iscallable(thenable) then -- 269
+pcall(thenable, p, onResolve, onReject) -- 270
+							return coroutine.yield() -- 271
+						else -- 273
+							return true, p -- 273
+						end -- 269
+					else -- 275
+						return true, p -- 275
+					end -- 268
+				end -- 268
+			end -- 259
+		end, -- 279
+		Await = function(p) -- 279
+			local ok, result = Promise.SafeAwait(p) -- 280
+			if ok then -- 281
+				return result -- 281
+			else -- 282
+				return error(result) -- 282
+			end -- 281
 		end -- 45
 	} -- 45
 	if _base_0.__index == nil then -- 45
 		_base_0.__index = _base_0 -- 45
-	end -- 235
+	end -- 284
 	_class_0 = setmetatable({ -- 45
 		__init = function(self, executor) -- 56
 			self.state = self.STATE_PENDING -- 57
@@ -362,7 +408,28 @@ do -- 45
 		return p -- 233
 	end -- 228
 	self.race = self.Race -- 235
+	self.Async = function(fn) -- 237
+		return function(...) -- 237
+			local p = Promise() -- 238
+			local co = coroutine.create(function(...) -- 239
+				do -- 240
+					local success, result = xpcall(fn, function(err) -- 240
+						-- TODO save stacktrace and pass it to reject
+						return p:Reject(err) -- 243
+					end, ...) -- 240
+					if success then -- 240
+						return p:Resolve(result) -- 244
+					end -- 240
+				end -- 243
+			end) -- 239
+			coroutine.resume(co, ...) -- 246
+			return p -- 247
+		end -- 247
+	end -- 237
+	self.async = self.Async -- 249
+	self.__base.saveAwait = self.__base.SafeAwait -- 277
+	self.__base.await = self.__base.Await -- 284
 	Promise = _class_0 -- 45
-end -- 235
-_module_0 = Promise -- 237
-return _module_0 -- 237
+end -- 284
+_module_0 = Promise -- 286
+return _module_0 -- 286

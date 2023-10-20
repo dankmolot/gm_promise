@@ -234,4 +234,53 @@ class Promise
 
     @race: @Race
 
+    @Async: (fn) -> (...) ->
+        p = Promise!
+        co = coroutine.create (...) ->
+            if success, result = try fn ...
+            catch err
+                    -- TODO save stacktrace and pass it to reject
+                    p\Reject err
+                p\Resolve result
+
+        coroutine.resume co, ...
+        return p
+
+    @async: @Async
+
+    SafeAwait: (p) ->
+        co = coroutine.running!
+        unless co then return false, "Cannot await in main thread"
+
+        once_wrapper = once!
+        onResolve = once_wrapper (value) -> coroutine.resume co, true, value
+        onReject = once_wrapper (reason) -> coroutine.resume co, false, reason
+
+        if Promise.IsPromise p
+            switch p.state
+                when p.STATE_FULFILLED
+                    return true, p.value
+                when p.STATE_REJECTED
+                    return false, p.reason
+                else
+                    p\Then onResolve, onReject
+                    return coroutine.yield!
+        elseif thenable = get_thenable p
+            if iscallable thenable
+                try thenable p, onResolve, onReject
+                return coroutine.yield!
+            else
+                return true, p
+        else
+            return true, p
+
+    @__base.saveAwait = @__base.SafeAwait
+    
+    Await: (p) ->
+        ok, result = Promise.SafeAwait p
+        if ok then return result
+        else error result
+
+    @__base.await = @__base.Await
+
 export default Promise
