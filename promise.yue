@@ -21,8 +21,8 @@
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
     SOFTWARE.
 --]]
-isfunction = (obj) -> type(obj) == "function"
-istable = (obj) -> type(obj) == "table"
+isfunction = isfunction
+istable = istable
 iscallable = (obj) -> 
     if isfunction obj then return true
     if istable obj then
@@ -43,6 +43,10 @@ once = () ->
             wrapped_fn ...
 
 class Promise
+    @VERSION: "2.0.0"
+    @AUTHOR: "Retro"
+    @URL: "https://github.com/dankmolot/gm_promise"
+
     STATE_PENDING: 1
     STATE_FULFILLED: 2
     STATE_REJECTED: 3
