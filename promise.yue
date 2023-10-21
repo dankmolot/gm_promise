@@ -276,6 +276,21 @@ class Promise
         if ok then return result
         else error result
 
+    @Delay: (time) ->
+        p = Promise!
+        timer.Simple time, -> p\Resolve!
+        return p
+    
+    @HTTP: (options) ->
+        p = Promise!
+        options.success = (code, body, headers) ->
+            p\Resolve { code: code, body: body, headers: headers }
+        options.failed = (err) ->
+            p\Reject err -- TODO use HTTPError object
+        unless ok = HTTP options
+            p\Reject "failed to make http request" -- TODO use HTTPError object
+        return p
+
     -- Methods renames
     @__base.resolve = @__base.Resolve
     @__base.reject = @__base.Reject
@@ -293,5 +308,7 @@ class Promise
     @any: @Any
     @race: @Race
     @async: @Async
+    @delay: @Delay
+    @http: @HTTP
 
 export default Promise

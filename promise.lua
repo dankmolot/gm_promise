@@ -277,7 +277,7 @@ pcall(thenable, p, onResolve, onReject) -- 263
 	} -- 48
 	if _base_0.__index == nil then -- 48
 		_base_0.__index = _base_0 -- 48
-	end -- 295
+	end -- 312
 	_class_0 = setmetatable({ -- 48
 		__init = function(self, executor) -- 59
 			self.state = self.STATE_PENDING -- 60
@@ -432,23 +432,52 @@ pcall(thenable, p, onResolve, onReject) -- 263
 			return p -- 242
 		end -- 242
 	end -- 232
-	self.__base.resolve = self.__base.Resolve -- 280
-	self.__base.reject = self.__base.Reject -- 281
-	self.__base["then"] = self.__base.Then -- 282
-	self.__base.next = self.__base.Then -- 283
-	self.__base.andThen = self.__base.Then -- 284
-	self.__base.catch = self.__base.Catch -- 285
-	self.__base.finally = self.__base.Finally -- 286
-	self.__base.saveAwait = self.__base.SafeAwait -- 287
-	self.__base.await = self.__base.Await -- 288
-	self.resolve = self.Resolve -- 289
-	self.reject = self.Reject -- 290
-	self.all = self.All -- 291
-	self.allSettled = self.AllSettled -- 292
-	self.any = self.Any -- 293
-	self.race = self.Race -- 294
-	self.async = self.Async -- 295
+	self.Delay = function(time) -- 279
+		local p = Promise() -- 280
+		timer.Simple(time, function() -- 281
+			return p:Resolve() -- 281
+		end) -- 281
+		return p -- 282
+	end -- 279
+	self.HTTP = function(options) -- 284
+		local p = Promise() -- 285
+		options.success = function(code, body, headers) -- 286
+			return p:Resolve({ -- 287
+				code = code, -- 287
+				body = body, -- 287
+				headers = headers -- 287
+			}) -- 287
+		end -- 286
+		options.failed = function(err) -- 288
+			return p:Reject(err) -- 289
+		end -- 288
+		do -- 290
+			local ok = HTTP(options) -- 290
+			if not ok then -- 290
+				p:Reject("failed to make http request") -- 291
+			end -- 290
+		end -- 290
+		return p -- 292
+	end -- 284
+	self.__base.resolve = self.__base.Resolve -- 295
+	self.__base.reject = self.__base.Reject -- 296
+	self.__base["then"] = self.__base.Then -- 297
+	self.__base.next = self.__base.Then -- 298
+	self.__base.andThen = self.__base.Then -- 299
+	self.__base.catch = self.__base.Catch -- 300
+	self.__base.finally = self.__base.Finally -- 301
+	self.__base.saveAwait = self.__base.SafeAwait -- 302
+	self.__base.await = self.__base.Await -- 303
+	self.resolve = self.Resolve -- 304
+	self.reject = self.Reject -- 305
+	self.all = self.All -- 306
+	self.allSettled = self.AllSettled -- 307
+	self.any = self.Any -- 308
+	self.race = self.Race -- 309
+	self.async = self.Async -- 310
+	self.delay = self.Delay -- 311
+	self.http = self.HTTP -- 312
 	Promise = _class_0 -- 48
-end -- 295
-_module_0 = Promise -- 297
-return _module_0 -- 297
+end -- 312
+_module_0 = Promise -- 314
+return _module_0 -- 314
