@@ -76,7 +76,7 @@ class Promise
         @value = nil
         @reason = nil
         @queue = nil -- Queue is created only if then called in pending state
-        @stack = capture_stack 3
+        -- @stack = capture_stack 3
 
         if iscallable executor
             @resolving = true
@@ -120,8 +120,8 @@ class Promise
                     @_FinalizePromise p
                     @queue[i] = nil
             elseif @state == @STATE_REJECTED
-                final_stack = table.Add {}, @reject_stack
-                ErrorNoHalt error_with_custom_stack @reason, table.Add final_stack, @stack
+                -- final_stack = table.Add {}, @reject_stack
+                -- ErrorNoHalt error_with_custom_stack @reason, table.Add final_stack, @stack
 
     _Fulfill: (value) =>
         @state = @STATE_FULFILLED
@@ -167,9 +167,9 @@ class Promise
         return unless @state == @STATE_PENDING
         @state = @STATE_REJECTED
         @reason = reason
-        @reject_stack = capture_stack 1
-        if @stack[#@stack].currentline == @reject_stack[#@reject_stack].currentline
-            @reject_stack = {}
+        -- @reject_stack = capture_stack 1
+        -- if @stack[#@stack].currentline == @reject_stack[#@reject_stack].currentline
+        --     @reject_stack = {}
         @_Finalize!
 
     Reject: (reason) =>
