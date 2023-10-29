@@ -21,6 +21,8 @@
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
     SOFTWARE.
 --]]
+:Error, :TypeError = include "error.lua"
+
 isfunction = isfunction
 istable = istable
 iscallable = (obj) -> 
@@ -58,6 +60,8 @@ error_with_custom_stack = (err, stack) ->
         lines[] = "#{space}#{i}. #{info.name or "unknown"} - #{info.short_src}:#{info.currentline}"
     lines[] = "\n\n" -- just a line for new line
     return table.concat lines, "\n"
+
+class HTTPError extends Error
 
 class Promise
     @VERSION: "2.0.0"
@@ -137,7 +141,7 @@ class Promise
 
     _Resolve: (value) =>
         return if @state != @STATE_PENDING
-        return @_Reject "Cannot resolve a promise with itself" if value == @ -- TODO use TypeError object
+        return @_Reject TypeError "Cannot resolve a promise with itself" if value == @
         @resolving = true
         @on_fulfilled = nil
         @on_rejected = nil
@@ -305,12 +309,12 @@ class Promise
     @HTTP: (options) ->
         p = Promise!
         options.success = (code, body, headers) ->
-            p\Resolve { code: code, body: body, headers: headers }
+            p\Resolve { :code, :body, :headers }
         options.failed = (err) ->
-            p\Reject err -- TODO use HTTPError object
+            p\Reject HTTPError err
             return -- for better stacktrace
         unless ok = HTTP options
-            p\Reject "failed to make http request" -- TODO use HTTPError object
+            p\Reject HTTPError "failed to make http request"
         return p
 
     -- Methods renames
@@ -333,6 +337,5 @@ class Promise
     @delay: @Delay
     @http: @HTTP
 
-Promise.reject!
-
+Promise.HTTPError = HTTPError
 export default Promise

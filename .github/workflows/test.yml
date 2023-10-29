@@ -7,3 +7,5 @@ on:
 jobs:
   run-tests:
     uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main
+    with:
+      requirements: lua/tests/gm_promise/requirements.txt
