@@ -1,205 +1,292 @@
 # gm_promise
-A library that mostly implements Promise/A+ specification for GLua.
-If you are familiar with promises from JS, then this library will be easy to learn & use for you.
+<a href="https://promisesaplus.com/">
+    <img src="https://promisesaplus.com/assets/logo-small.png" alt="Promises/A+ logo"
+         title="Promises/A+ 1.1 compliant" align="right" />
+</a>
 
-## Differences with [JS Promises](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise)
-* Promises can be resolved immediately instead of being resolved in next tick (see [Promise/A+ 3.1](https://promisesaplus.com/#notes))
-* All functions are converted to PascalCase (JS -> Lua)
-    * `new Promise((resolve, reject) => {...})` -> `promise.New(function(resolve, reject) ... end)`
-    * `Promise.all(array)` -> `promise.All(array)`
-    * `Promise.resolve(value)` -> `promise.Resolve(value)`
-    * `Promise.reject(reason)` -> `promise.Reject(reason)`
-    * `Promise.prototype.then(onFulfilled?, onRejected?)` -> `PromiseObject:Then(onFulfilled?, onRejected?)`
-    * `Promise.prototype.catch(onRejected?)` -> `PromiseObject:Catch(onRejected?)`
-* There currently no `promise.AllSettled`, `promise.Any` and `PromiseObject:Finally(...)` methods
-* Errors inside async will have error line prepended, see [Notes](#notes) for more information.
-* Errors doesn't have stacktrace
-* Since in lua we don't have syntax `async function`, async functions created using function `promise.Async(function() ... end)`
-* `PromiseObject:Await()` isn't safe to use, and throws errors. To handle errors and use await use `PromiseObject:SafeAwait()`
+[Promise/A+](https://promisesaplus.com) compliant implementation written for Garry's Mod written in Yuescript
 
+Promises represent the result of an operation which will complete in the future. They can be passed around, chained onto, and can help to flatten out deeply nested callback code, and simplify error handling to some degree.
 
-## API
-This library can be included by calling `require("promise")`
-### Global variables
+This library has a lot of similarities [JS Promises](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise),
+so checkout them.
+
+Also there are many, and much better, introductions to promise patterns.
+* https://www.promisejs.org/
+* https://www.promisejs.org/patterns/
+
+This library is dependent on [gm_error]
+
+## Installation
+Copy [`promise.lua`](/promise.lua) 
+and [`error.lua`](https://github.com/dankmolot/gm_error/blob/main/error.lua) (from [gm_error])
+into your project and then include it
 ```lua
-promise._VERSION = "1.2.3" -- Version of the promise library - major.minor.patch
-promise._VERSION_NUM = 010203 -- Version in number format: 1.2.3 -> 010203 | 99.56.13 -> 995613
-promise.PROMISE = {...} -- Metatable for PromiseObject
+local Promise = include("promise.lua")
 ```
 
-### Global methods
+If you want to include promises in clientside, do not forget to `AddCSLuaFile` them
 ```lua
--- Creates new promise object
--- If function passed, then calls it with arguments (resolve, reject)
--- Example:
---          promise.new(function(resolve, reject)
---              local ok, result = pcall(doWork)
---              if ok then
---                  resolve(result)
---              else
---                  reject(result)
---              end
---          end)
-PromiseObject promise.New(func: function)
-
--- Creates a new async function that return promise
--- Example:
---          local makeHttpRequest = promise.Async(function(url, headers))
---              local ok, res = promise.HTTP({ url = url, headers = headers })
---              if not ok then return promise.Reject(res) end
---              
---              print(res.body)
---          end)
---
---          print( makeHttpRequest("https://httpbin.org/get") ) -- Promise 0x2b59872ab90 {<pending>}
-AsyncFunction promise.Async(func: function)
-
--- Returns a promise that resolved with passed value
--- If promise passed, then it waits until promise is resolved or rejected
-PromiseObject promise.Resolve(value: any)
-
--- Returns a promise that is rejected with passed value
--- This function accepts any value, but it is always better to use string
--- Also if promise passed as value, then it won't wait until given promise is resolved
-PromiseObject promise.Reject(reason: any)
-
--- Returns a promise with array of resolved values from promises
--- If some promise is rejected, then rejects returned promise
--- Example:
---          local promises = { promise.Resolve("Hello"), promise.Resolve("World") }
---
---          promise.All(promises)
---              :Then(util.TableToJSON)
---              :Then(print) -- ["Hello","World"]
-PromiseObject promise.All(promises: table)
-
--- Returns a promise that will be fulfilled/rejected with first promise.
--- Example:
---          local promises = {
---              promise.Delay(2):Then(function() return "Slow!" end),
---              promise.Delay(1):Then(function() return "Fast!" end)
---          }
---
---          promise.Race(promises):Then(print) -- Fast!
-
--- Returns a promise that resolves after specified time in seconds
--- Same as: promise.New(function(resolve) timer.Simple(time, resolve) end)
-PromiseObject promise.Delay(seconds: number)
-
--- Returns a promise which is resolved with result table
--- If HTTP request wasn't successful, then promise will be rejected
--- Uses https://wiki.facepunch.com/gmod/Global.HTTP
--- 
--- Example of result table:
---  {
---      code = 200,
---      headers = { ... },
---      body = "..."
---  }
-PromiseObject promise.HTTP(parameters: HTTPRequest)
-
--- Returns true if object have .Then function
-bool promise.IsThenable(obj: any)
-
--- Returns true if object have .Await function
-bool promise.IsAwaitable(obj: any)
-
--- Returns true if object is PromiseObject
-bool promise.IsPromise(obj: any)
-
--- Same as coroutine.running()
-thread promise.RunningInAsync()
-
--- Alias to PromiseObject:Await(...)
-promise.Await(promise: PromiseObject, ignoreErrors?: bool)
-
--- Alias to PromiseObject:SafeAwait()
-promise.SafeAwait(promise: PromiseObject)
+AddCSLuaFile("error.lua")
+AddCSLuaFile("promise.lua")
 ```
 
-### PromiseObject method
+## Examples
 ```lua
--- Returns current promise state ("pending", "fulfilled", "rejected")
-string PromiseObject:GetState()
+local Promise = include("promise.lua")
 
--- I think these functions are self-explanatory
-bool PromiseObject:IsPending()
-bool PromiseObject:IsFulfilled()
-bool PromiseObject:IsRejected()
+local p = Promise()
+p:Resolve(123)
 
--- :Then(...) function takes two function: onFulfilled and onRejected callbacks
--- It will call onFulfilled callback if promise resolved, or onRejected callback if rejected
--- It immediately returns a new PromiseObject that will be resolved with returned value from onFulfilled callback, 
--- or rejected with returned value from onRejected callback
-PromiseObject PromiseObject:Then(onFulfilled?: function, onRejected?: function)
-
--- Same as PromiseObject:Then(nil, onRejected)
-PromiseObject PromiseObject:Catch(onRejected?: function)
-
--- Waits until promise become resolved and returns its value
--- If promise becomes rejected, then :Await() throws an error
--- It is better to catch error with :SafeAwait(), see notes for more information
--- If ignoreErrors passed, then just returns nil when error occurs
---
--- NB! Can only be used in async function or coroutine
-any PromiseObject:Await(ignoreErrors?: bool)
-
--- Waits until promise become resolved and returns true and its value
--- If promise becomes rejected, then returns false and error message (rejected value)
--- Useful for handling and forwarding errors
---
--- NB! Can only be used in async function or coroutine
-bool, any PromiseObject:SafeAwait()
-
--- Returns internal result if promise is fulfilled or rejected
-any PromiseObject:GetResult()
-
--- Fulfills promise with the given value
--- If promise given, when it is waits until promise gets fulfilled or rejected
-PromiseObject:Resolve(value: any)
-
--- Rejects promise with the given reason
--- It accepts any value, but it's better to use strings as reason
-PromiseObject:Reject(reason: any)
-
--- Just a metamethod that converts promise to string
--- table 0x01234abcdef -> Promise 0x01234abcdef {<state>: value}
--- Example: Promise 0x2b59872ab90 {<fulfilled>: 123}
-string PromiseObject:__tostring()
+p:Then(function(value)
+    print("Promise was fulfilled with", value)
+end, function(reason)
+    print("Promise was rejected with", value)
+end)
+-- Will print 'Promise was fulfilled with 123'
 ```
 
-## Notes
-1. Promises only can return one value, but async functions can receive many arguments
 ```lua
--- Wrong
-promise.New(function(resolve)
-    resolve("hello", "world") -- Promise will only return "hello"
+local p = Promise(function(resolve, reject)
+    resolve("hello world")
 end)
 
-promise.Async(function(firstName, lastName)
-    return "Hello", firstName, lastName -- Async function will only return "Hello"
+print(p) -- Will print 'Promise 0x12345678 { <state>: "fulfilled", <value>: hello world }'
+```
+
+```lua
+local p = Promise()
+timer.Simple(1, function()
+    p:Resolve()
 end)
 
--- Good
-promise.New(function(resolve)
-    resolve("hello world") -- Promise will return "hello world"
+p:Then(function()
+    print("Promise fulfilled!")
 end)
+-- 'Promise fulfilled' will be printed after 1 second
+```
 
-promise.Async(function(firstName, lastName)
-    return "Hello " .. firstName .. " " .. lastName -- Promise will return "Hello Steven Universe"
+```lua
+local Promise = include("promise.lua")
+local Error = include("error.lua").Error
+
+local p = Promise()
+p:Reject( Error("Whoops!") )
+
+p:Catch(function(reason)
+    print(reason)
+    -- Will print 'xxx/yyy/zzz.lua:123: Error: Whoops!'
 end)
 ```
 
-2. If error happened in async function, then it will have `addons/aaa/lua/bbb/ccc.lua:xyz:` string prepended. To avoid this behavior use `PromiseObject:SafeAwait()` and return `promise.Reject("my error")`
 ```lua
-local function throwError(err)
-    return promise.Reject(err)
+local Promise = include("promise.lua")
+local Error = include("error.lua").Error
+
+local function AsyncFetch(url)
+    local p = Promise()
+    http.Fetch(url,
+        -- onSuccess
+        function(body, length, headers, code)
+            p:Resolve({
+                body = body,
+                length = length,
+                headers = headers,
+                code = code
+            })
+        end,
+
+        -- onFailure
+        function(message)
+            p:Reject(Error(message))
+        end
+    )
+    return p
 end
 
-local properlyHandledError = promise.Async(function()
-    local ok, result = throwError("Error string!"):SafeAwait()
-    if not ok then return promise.Reject(result) end
+local function AsyncJSONFetch(url)
+    return AsyncFetch(url):Then(function(data)
+        return util.JSONToTable(data.body)
+    end)
+end
 
-    -- ...
+AsyncJSONFetch("https://example.com"):Then(function(data)
+    -- `data` will be a table that is parsed from json from example.com
+    PrintTable(data)
+end):Catch(function(err)
+    print("Failed to fetch example.com:", err)
 end)
 ```
+
+## Usage
+### Promise()
+Creates a new promise that can be resolved or rejected
+```lua
+local p = Promise()
+p:Then(callback):Catch(callback):Finally(callback)
+```
+
+### Promise(executor)
+Creates a new promise that will be resolved or rejected by executor
+Executor receives two functions, `resolve` and `reject`.
+If executor throws and error, then the promise will be rejected.
+```lua
+local p = Promise(function(resolve, reject)
+    resolve("Hello World")
+end)
+
+p:Then(function(value)
+    print(value == "Hello World") -- true
+end)
+```
+
+### promise:Then(onFulfilled, onRejected, onFinally)
+Queues `onFulfilled`, `onRejected` and `onFinally` callbacks,
+and `promise` will call them after promise will be resolved.
+
+Returns *a new* promise
+
+Alternative names: `promise:next(...)`, `promise:andThen(...)`, `promise:then(...)`
+
+### promise:Catch(onRejected)
+Same as calling [`promise:Then(nil, onRejected)`](#promisethenonfulfilled-onrejected-onfinally)
+
+Alternative name: `promise:catch(...)`
+
+### promise:Finally(onFinally)
+Same as calling [`promise:Then(nil, nil, onFinally)`](#promisethenonfulfilled-onrejected-onfinally)
+
+Alternative name: `promise:finally(...)`
+
+### promise:Resolve(value)
+Resolves `promise` with passed `value`.
+If `promise` already resolved or rejected, does nothing.
+
+Alternative name: `promise:resolve(...)`
+
+### promise:Reject(reason)
+Rejects `promise` with passed `reason`.
+If `promise` already resolved or rejected, does nothing.
+
+Alternative name: `promise:resolve(...)`
+
+### Promise.Resolve(value)
+Returns a new promise that is resolved with passed `value`.
+
+Alternative name: `Promise.resolve(...)`
+
+### Promise.Reject(reason)
+Returns a new promise that is rejected with passed `reason`.
+
+Alternative name: `Promise.reject(...)`
+
+### Promise.All(promises)
+Returns a new promise that will be resolved with fulfilled values from `promises`.
+If all promises are rejected, then returned promise will be rejected.
+`promises` must be a list of promises.
+
+Alternative name: `Promise.all(...)`
+
+### Promise.AllSettled(promises)
+Returns a new promise that will be resolved with values like `{ status = "fulfilled", value = ... }` or `{ status = "rejected" , reason = ... }`.
+`promises` must be a list of promises.
+
+Alternative name: `Promise.allSettled(...)`
+
+### Promise.Any(promises)
+Returns a new promise that will be resolved with first fulfilled promise.
+If all promises are rejected, then returned promise will be rejected.
+
+Alternative name: `Promise.any(...)`
+
+### Promise.Race(promises)
+Returns a new promise that will be fulfilled/rejected with first resolved promise.
+
+Alternative name: `Promise.race(...)`
+
+### Promise.Delay(time, value)
+Returns a new promise that will be resolved with `value` after `time` (in seconds)
+
+Alternative name: `Promise.delay(...)`
+
+### Promise.HTTP(parameters)
+Same as [HTTP](https://wiki.facepunch.com/gmod/Global.HTTP) but will return a new Promise that will be fulfilled or rejected with response from HTTP.
+
+Fulfill value is `{ code = ..., body = "...", headers = {...} }`
+Reject value is [`HTTPError`](#promisehttperror) with a reason of error.
+
+Alternative name: `Promise.http(...)`
+
+### Promise.Async(func)
+Wraps around given function. Returned function will call `func` in coroutine thread, will allow to [await](#promiseawait) promises and return a new promise that will be fulfilled with `func` return value, or rejected with error from `func`.
+
+Alternative name: `Promise.async(...)`
+
+```lua
+local async = Promise.Async
+local await = Promise.Await
+
+local fn = async(function()
+    await( Promise.delay(1) ) -- Waits for one second
+    return "hello world"
+end)
+
+local p = fn()
+-- p is a promise that will be resolved with "hello world" after 1 second
+```
+
+### promise:Await()
+Asynchronously waits for promise to resolve. Returns a value if promise was fulfilled, or throws a reason.
+
+Alternative name: `Promise:await()`
+
+```lua
+local async = Promise.async
+local fn = async(function()
+    local value = Promise.Delay(1, "hello world"):Await()
+    print(value == "hello world") -- true
+end)
+
+fn()
+```
+
+### promise:SafeAwait()
+Same as [`promise:Await()`](#promiseawait), but returns two values instead.
+
+Returns `true` and value if promise was fulfilled. Returns `false` and reason if promise was rejected.
+
+Alternative name: `Promise:saveAwait()`
+
+```lua
+local async = Promise.async
+local fn = async(function()
+    local ok, value = Promise.Delay(1, "hello world"):SafeAwait()
+    print(ok) -- true
+    print(value) -- hello world
+end)
+
+fn()
+```
+
+### Promise.HTTPError
+Just an extended class from `Error` that is used to reject a promise in [`Promise.HTTP(...)`](#promisehttpparameters)
+
+## Differences from the Promises/A+ Spec
+* [1.2](https://promisesaplus.com/#point-7) `then` is reserved keyword in Lua. `Then`, `next` or `andThen` must be used instead.
+* [1.3](https://promisesaplus.com/#point-8) Lua have only type `nil`, there is no `undefined`
+* [2.2.5](https://promisesaplus.com/#point-35) Lua method calls do not have a `this` equivalent. The `self` syntactic sugar for `self` is determined by method arguments.
+* [2.3.1]("https://promisesaplus.com/#point-48") `TypeError` error object is used from [gm_error], since Lua does not have own error objects.
+* [2.3.3.3]("https://promisesaplus.com/#point-56") Lua method calls do not have a `this` equivalent. `Then` will be called with the first argument of x instead.
+
+## Credits
+This README is inspired by [promise.lua](https://github.com/Billiam/promise.lua). Thanks to him for writing good README :)
+
+Related projects:
+* [promise.lua](https://github.com/Billiam/promise.lua)
+* [AndThen](https://github.com/ppissanetzky/AndThen)
+* [lua_promise](https://github.com/friesencr/lua_promise)
+* [lua-promise](https://github.com/dmccuskey/lua-promise)
+* [next.lua](https://github.com/pmachowski/next-lua)
+* [promise](https://github.com/Olivine-Labs/promise)
+
+[gm_error]:https://github.com/dankmolot/gm_error
