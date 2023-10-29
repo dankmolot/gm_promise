@@ -87,8 +87,7 @@ class Promise
             once_wrapper = once!
             onFulfill = once_wrapper (value) -> @_Resolve value
             onReject = once_wrapper (reason) -> @_Reject reason
-            try
-                executor onFulfill, onReject
+            try executor onFulfill, onReject
             catch err
                 onReject err
 
@@ -301,9 +300,9 @@ class Promise
         if ok then return result
         else error result
 
-    @Delay: (time) ->
+    @Delay: (time, value) ->
         p = Promise!
-        timer.Simple time, -> p\Resolve!
+        timer.Simple time, -> p\Resolve value
         return p
     
     @HTTP: (options) ->

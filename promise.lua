@@ -147,216 +147,216 @@ do -- 66
 		STATE_REJECTED = 3, -- 75
 		IsPromise = function(obj) -- 75
 			return istable(obj) and obj.__class == Promise -- 75
-		end, -- 95
-		__tostring = function(self) -- 95
-			local ptr = string.format("%p", self) -- 96
-			local _exp_0 = self.state -- 97
-			if self.STATE_PENDING == _exp_0 then -- 98
-				return "Promise " .. tostring(ptr) .. " { <state>: \"pending\" }" -- 99
-			elseif self.STATE_FULFILLED == _exp_0 then -- 100
-				return "Promise " .. tostring(ptr) .. " { <state>: \"fulfilled\", <value>: " .. tostring(self.value) .. " }" -- 101
-			elseif self.STATE_REJECTED == _exp_0 then -- 102
-				return "Promise " .. tostring(ptr) .. " { <state>: \"rejected\", <reason>: " .. tostring(self.reason) .. " }" -- 103
-			else -- 105
-				return "Promise " .. tostring(ptr) .. " { <state>: \"invalid\" }" -- 105
-			end -- 105
-		end, -- 107
-		_FinalizePromise = function(self, p) -- 107
-			return xpcall(function() -- 108
-				if self.state == self.STATE_FULFILLED then -- 109
-					if p.on_fulfilled then -- 110
-						p:_Resolve(p.on_fulfilled(self.value)) -- 110
-					else -- 111
-						p:_Resolve(self.value) -- 111
-					end -- 110
-				elseif self.state == self.STATE_REJECTED then -- 112
-					if p.on_rejected then -- 113
-						p:_Resolve(p.on_rejected(self.reason)) -- 113
-					else -- 114
-						p:_Reject(self.reason) -- 114
-					end -- 113
-				end -- 109
-				if p.on_finally then -- 115
-					return p.on_finally() -- 115
-				end -- 115
-			end, function(err) -- 115
-				return p:_Reject(err) -- 117
-			end) -- 117
-		end, -- 119
-		_Finalize = function(self) -- 119
-			if self.state == self.STATE_PENDING then -- 120
-				return -- 120
-			end -- 120
-			return nextTick(function() -- 121
-				if self.queue then -- 122
-					for i, p in ipairs(self.queue) do -- 123
-						self:_FinalizePromise(p) -- 124
-						self.queue[i] = nil -- 125
-					end -- 125
-				elseif self.state == self.STATE_REJECTED then -- 126
-				end -- 122
-			end) -- 128
-		end, -- 130
-		_Fulfill = function(self, value) -- 130
-			self.state = self.STATE_FULFILLED -- 131
-			self.value = value -- 132
-			return self:_Finalize() -- 133
-		end, -- 135
-		_ResolveThenable = function(self, obj, thenable) -- 135
-			local once_wrapper = once() -- 136
-			local onFulfill = once_wrapper(function(value) -- 137
-				return self:_Resolve(value) -- 137
+		end, -- 94
+		__tostring = function(self) -- 94
+			local ptr = string.format("%p", self) -- 95
+			local _exp_0 = self.state -- 96
+			if self.STATE_PENDING == _exp_0 then -- 97
+				return "Promise " .. tostring(ptr) .. " { <state>: \"pending\" }" -- 98
+			elseif self.STATE_FULFILLED == _exp_0 then -- 99
+				return "Promise " .. tostring(ptr) .. " { <state>: \"fulfilled\", <value>: " .. tostring(self.value) .. " }" -- 100
+			elseif self.STATE_REJECTED == _exp_0 then -- 101
+				return "Promise " .. tostring(ptr) .. " { <state>: \"rejected\", <reason>: " .. tostring(self.reason) .. " }" -- 102
+			else -- 104
+				return "Promise " .. tostring(ptr) .. " { <state>: \"invalid\" }" -- 104
+			end -- 104
+		end, -- 106
+		_FinalizePromise = function(self, p) -- 106
+			return xpcall(function() -- 107
+				if self.state == self.STATE_FULFILLED then -- 108
+					if p.on_fulfilled then -- 109
+						p:_Resolve(p.on_fulfilled(self.value)) -- 109
+					else -- 110
+						p:_Resolve(self.value) -- 110
+					end -- 109
+				elseif self.state == self.STATE_REJECTED then -- 111
+					if p.on_rejected then -- 112
+						p:_Resolve(p.on_rejected(self.reason)) -- 112
+					else -- 113
+						p:_Reject(self.reason) -- 113
+					end -- 112
+				end -- 108
+				if p.on_finally then -- 114
+					return p.on_finally() -- 114
+				end -- 114
+			end, function(err) -- 114
+				return p:_Reject(err) -- 116
+			end) -- 116
+		end, -- 118
+		_Finalize = function(self) -- 118
+			if self.state == self.STATE_PENDING then -- 119
+				return -- 119
+			end -- 119
+			return nextTick(function() -- 120
+				if self.queue then -- 121
+					for i, p in ipairs(self.queue) do -- 122
+						self:_FinalizePromise(p) -- 123
+						self.queue[i] = nil -- 124
+					end -- 124
+				elseif self.state == self.STATE_REJECTED then -- 125
+				end -- 121
+			end) -- 127
+		end, -- 129
+		_Fulfill = function(self, value) -- 129
+			self.state = self.STATE_FULFILLED -- 130
+			self.value = value -- 131
+			return self:_Finalize() -- 132
+		end, -- 134
+		_ResolveThenable = function(self, obj, thenable) -- 134
+			local once_wrapper = once() -- 135
+			local onFulfill = once_wrapper(function(value) -- 136
+				return self:_Resolve(value) -- 136
+			end) -- 136
+			local onReject = once_wrapper(function(reason) -- 137
+				return self:_Reject(reason) -- 137
 			end) -- 137
-			local onReject = once_wrapper(function(reason) -- 138
-				return self:_Reject(reason) -- 138
-			end) -- 138
-			do -- 139
-				local ok, err = pcall(thenable, obj, onFulfill, onReject) -- 139
-				if not ok then -- 139
-					return onReject(err) -- 140
-				end -- 139
-			end -- 139
-		end, -- 142
-		_Resolve = function(self, value) -- 142
-			if self.state ~= self.STATE_PENDING then -- 143
-				return -- 143
+			do -- 138
+				local ok, err = pcall(thenable, obj, onFulfill, onReject) -- 138
+				if not ok then -- 138
+					return onReject(err) -- 139
+				end -- 138
+			end -- 138
+		end, -- 141
+		_Resolve = function(self, value) -- 141
+			if self.state ~= self.STATE_PENDING then -- 142
+				return -- 142
+			end -- 142
+			if value == self then -- 143
+				return self:_Reject(TypeError("Cannot resolve a promise with itself")) -- 143
 			end -- 143
-			if value == self then -- 144
-				return self:_Reject(TypeError("Cannot resolve a promise with itself")) -- 144
-			end -- 144
-			self.resolving = true -- 145
-			self.on_fulfilled = nil -- 146
-			self.on_rejected = nil -- 147
-			self.on_finally = nil -- 148
-			if self.IsPromise(value) then -- 149
-				if value.state == self.STATE_PENDING then -- 150
-					if not value.queue then -- 151
-						value.queue = { } -- 151
+			self.resolving = true -- 144
+			self.on_fulfilled = nil -- 145
+			self.on_rejected = nil -- 146
+			self.on_finally = nil -- 147
+			if self.IsPromise(value) then -- 148
+				if value.state == self.STATE_PENDING then -- 149
+					if not value.queue then -- 150
+						value.queue = { } -- 150
+					end -- 150
+					do -- 151
+						local _obj_0 = value.queue -- 151
+						_obj_0[#_obj_0 + 1] = self -- 151
 					end -- 151
-					do -- 152
-						local _obj_0 = value.queue -- 152
-						_obj_0[#_obj_0 + 1] = self -- 152
-					end -- 152
-				else -- 154
-					return value:_FinalizePromise(self) -- 154
-				end -- 150
-			elseif istable(value) then -- 155
-				local ok, thenable = pcall(get_thenable, value) -- 156
-				if not ok then -- 157
-					return self:_Reject(thenable) -- 157
-				end -- 157
-				if thenable then -- 159
-					return self:_ResolveThenable(value, thenable) -- 160
-				else -- 162
-					return self:_Fulfill(value) -- 162
-				end -- 159
-			else -- 164
-				return self:_Fulfill(value) -- 164
-			end -- 149
-		end, -- 166
-		Resolve = function(self, value) -- 166
-			if self.resolving then -- 167
-				return -- 167
-			end -- 167
-			return self:_Resolve(value) -- 168
-		end, -- 170
-		_Reject = function(self, reason) -- 170
-			if not (self.state == self.STATE_PENDING) then -- 171
-				return -- 171
-			end -- 171
-			self.state = self.STATE_REJECTED -- 172
-			self.reason = reason -- 173
+				else -- 153
+					return value:_FinalizePromise(self) -- 153
+				end -- 149
+			elseif istable(value) then -- 154
+				local ok, thenable = pcall(get_thenable, value) -- 155
+				if not ok then -- 156
+					return self:_Reject(thenable) -- 156
+				end -- 156
+				if thenable then -- 158
+					return self:_ResolveThenable(value, thenable) -- 159
+				else -- 161
+					return self:_Fulfill(value) -- 161
+				end -- 158
+			else -- 163
+				return self:_Fulfill(value) -- 163
+			end -- 148
+		end, -- 165
+		Resolve = function(self, value) -- 165
+			if self.resolving then -- 166
+				return -- 166
+			end -- 166
+			return self:_Resolve(value) -- 167
+		end, -- 169
+		_Reject = function(self, reason) -- 169
+			if not (self.state == self.STATE_PENDING) then -- 170
+				return -- 170
+			end -- 170
+			self.state = self.STATE_REJECTED -- 171
+			self.reason = reason -- 172
 			-- @reject_stack = capture_stack 1
 			-- if @stack[#@stack].currentline == @reject_stack[#@reject_stack].currentline
 			--     @reject_stack = {}
-			return self:_Finalize() -- 177
-		end, -- 179
-		Reject = function(self, reason) -- 179
-			if not self.resolving then -- 180
-				return self:_Reject(reason) -- 180
-			end -- 180
-		end, -- 182
-		Then = function(self, on_fulfilled, on_rejected, on_finally) -- 182
-			local p = Promise() -- 183
-			if iscallable(on_fulfilled) then -- 184
-				p.on_fulfilled = on_fulfilled -- 184
+			return self:_Finalize() -- 176
+		end, -- 178
+		Reject = function(self, reason) -- 178
+			if not self.resolving then -- 179
+				return self:_Reject(reason) -- 179
+			end -- 179
+		end, -- 181
+		Then = function(self, on_fulfilled, on_rejected, on_finally) -- 181
+			local p = Promise() -- 182
+			if iscallable(on_fulfilled) then -- 183
+				p.on_fulfilled = on_fulfilled -- 183
+			end -- 183
+			if iscallable(on_rejected) then -- 184
+				p.on_rejected = on_rejected -- 184
 			end -- 184
-			if iscallable(on_rejected) then -- 185
-				p.on_rejected = on_rejected -- 185
+			if iscallable(on_finally) then -- 185
+				p.on_finally = on_finally -- 185
 			end -- 185
-			if iscallable(on_finally) then -- 186
-				p.on_finally = on_finally -- 186
+			if not self.queue then -- 186
+				self.queue = { } -- 186
 			end -- 186
-			if not self.queue then -- 187
-				self.queue = { } -- 187
+			do -- 187
+				local _obj_0 = self.queue -- 187
+				_obj_0[#_obj_0 + 1] = p -- 187
 			end -- 187
-			do -- 188
-				local _obj_0 = self.queue -- 188
-				_obj_0[#_obj_0 + 1] = p -- 188
-			end -- 188
-			self:_Finalize() -- 189
-			return p -- 190
+			self:_Finalize() -- 188
+			return p -- 189
+		end, -- 191
+		Catch = function(self, on_rejected) -- 191
+			return self:Then(nil, on_rejected) -- 191
 		end, -- 192
-		Catch = function(self, on_rejected) -- 192
-			return self:Then(nil, on_rejected) -- 192
-		end, -- 193
-		Finally = function(self, on_finally) -- 193
-			return self:Then(nil, nil, on_finally) -- 193
-		end, -- 269
-		SafeAwait = function(p) -- 269
-			local co = coroutine.running() -- 270
-			if not co then -- 271
-				return false, "Cannot await in main thread" -- 271
-			end -- 271
-			local once_wrapper = once() -- 273
-			local onResolve = once_wrapper(function(value) -- 274
-				return coroutine.resume(co, true, value) -- 274
+		Finally = function(self, on_finally) -- 192
+			return self:Then(nil, nil, on_finally) -- 192
+		end, -- 268
+		SafeAwait = function(p) -- 268
+			local co = coroutine.running() -- 269
+			if not co then -- 270
+				return false, "Cannot await in main thread" -- 270
+			end -- 270
+			local once_wrapper = once() -- 272
+			local onResolve = once_wrapper(function(value) -- 273
+				return coroutine.resume(co, true, value) -- 273
+			end) -- 273
+			local onReject = once_wrapper(function(reason) -- 274
+				return coroutine.resume(co, false, reason) -- 274
 			end) -- 274
-			local onReject = once_wrapper(function(reason) -- 275
-				return coroutine.resume(co, false, reason) -- 275
-			end) -- 275
-			if Promise.IsPromise(p) then -- 277
-				local _exp_0 = p.state -- 278
-				if p.STATE_FULFILLED == _exp_0 then -- 279
-					return true, p.value -- 280
-				elseif p.STATE_REJECTED == _exp_0 then -- 281
-					return false, p.reason -- 282
-				else -- 284
-					p:Then(onResolve, onReject) -- 284
-					return coroutine.yield() -- 285
+			if Promise.IsPromise(p) then -- 276
+				local _exp_0 = p.state -- 277
+				if p.STATE_FULFILLED == _exp_0 then -- 278
+					return true, p.value -- 279
+				elseif p.STATE_REJECTED == _exp_0 then -- 280
+					return false, p.reason -- 281
+				else -- 283
+					p:Then(onResolve, onReject) -- 283
+					return coroutine.yield() -- 284
+				end -- 284
+			else -- 285
+				do -- 285
+					local thenable = istable(p) and get_thenable(p) -- 285
+					if thenable then -- 285
+						if iscallable(thenable) then -- 286
+pcall(thenable, p, onResolve, onReject) -- 287
+							return coroutine.yield() -- 288
+						else -- 290
+							return true, p -- 290
+						end -- 286
+					else -- 292
+						return true, p -- 292
+					end -- 285
 				end -- 285
-			else -- 286
-				do -- 286
-					local thenable = istable(p) and get_thenable(p) -- 286
-					if thenable then -- 286
-						if iscallable(thenable) then -- 287
-pcall(thenable, p, onResolve, onReject) -- 288
-							return coroutine.yield() -- 289
-						else -- 291
-							return true, p -- 291
-						end -- 287
-					else -- 293
-						return true, p -- 293
-					end -- 286
-				end -- 286
-			end -- 277
-		end, -- 295
-		Await = function(p) -- 295
-			local awaitable = istable(p) and get_awaitable(p) -- 296
-			if awaitable and not Promise.IsPromise(p) then -- 297
-				return awaitable(p) -- 298
-			end -- 297
-			local ok, result = Promise.SafeAwait(p) -- 300
-			if ok then -- 301
-				return result -- 301
-			else -- 302
-				return error(result) -- 302
-			end -- 301
+			end -- 276
+		end, -- 294
+		Await = function(p) -- 294
+			local awaitable = istable(p) and get_awaitable(p) -- 295
+			if awaitable and not Promise.IsPromise(p) then -- 296
+				return awaitable(p) -- 297
+			end -- 296
+			local ok, result = Promise.SafeAwait(p) -- 299
+			if ok then -- 300
+				return result -- 300
+			else -- 301
+				return error(result) -- 301
+			end -- 300
 		end -- 66
 	} -- 66
 	if _base_0.__index == nil then -- 66
 		_base_0.__index = _base_0 -- 66
-	end -- 338
+	end -- 337
 	_class_0 = setmetatable({ -- 66
 		__init = function(self, executor) -- 77
 			self.state = self.STATE_PENDING -- 78
@@ -373,9 +373,9 @@ pcall(thenable, p, onResolve, onReject) -- 288
 				local onReject = once_wrapper(function(reason) -- 89
 					return self:_Reject(reason) -- 89
 				end) -- 89
-				return xpcall(executor, function(err) -- 91
-					return onReject(err) -- 93
-				end, onFulfill, onReject) -- 93
+				return xpcall(executor, function(err) -- 90
+					return onReject(err) -- 92
+				end, onFulfill, onReject) -- 92
 			end -- 85
 		end, -- 66
 		__base = _base_0, -- 66
@@ -393,172 +393,172 @@ pcall(thenable, p, onResolve, onReject) -- 288
 	self.VERSION = "2.0.0" -- 67
 	self.AUTHOR = "Retro" -- 68
 	self.URL = "https://github.com/dankmolot/gm_promise" -- 69
-	self.Resolve = function(value) -- 195
-		local _with_0 = Promise() -- 196
-		_with_0:Resolve(value) -- 197
-		return _with_0 -- 196
-	end -- 195
-	self.Reject = function(reason) -- 199
-		local _with_0 = Promise() -- 200
-		_with_0:Reject(reason) -- 201
-		return _with_0 -- 200
-	end -- 199
-	self.All = function(promises) -- 203
-		local p = Promise() -- 204
-		local count = #promises -- 205
-		local values = { } -- 206
-		if count == 0 then -- 207
-			p:Resolve(values) -- 207
-		end -- 207
-		for i, promise in ipairs(promises) do -- 208
-			if Promise.IsPromise(promise) then -- 209
-				promise:Then(function(value) -- 210
-					values[i] = value -- 211
-					count = count - 1 -- 212
-					if count == 0 then -- 213
-						return p:Resolve(values) -- 213
-					end -- 213
-				end, function(self, reason) -- 214
-					return p:Reject(reason) -- 214
-				end) -- 210
-			else -- 216
-				values[i] = promise -- 216
-				count = count - 1 -- 217
-				if count == 0 then -- 218
-					p:Resolve(values) -- 218
-				end -- 218
-			end -- 209
-		end -- 218
-		return p -- 219
-	end -- 203
-	self.AllSettled = function(promises) -- 221
-		local p = Promise() -- 222
-		local count = #promises -- 223
-		local values = { } -- 224
-		if count == 0 then -- 225
-			p:Resolve(values) -- 225
-		end -- 225
-		for i, promise in ipairs(promises) do -- 226
-			promise:Then(function(value) -- 227
-				values[i] = { -- 228
-					status = "fulfilled", -- 228
-					value = value -- 228
-				} -- 228
-				count = count - 1 -- 229
-				if count == 0 then -- 230
-					return p:Resolve(values) -- 230
-				end -- 230
-			end, function(reason) -- 231
-				values[i] = { -- 232
-					status = "rejected", -- 232
-					reason = reason -- 232
-				} -- 232
-				count = count - 1 -- 233
-				if count == 0 then -- 234
-					return p:Resolve(values) -- 234
-				end -- 234
-			end) -- 227
-		end -- 234
-		return p -- 235
-	end -- 221
-	self.Any = function(promises) -- 237
-		local p = Promise() -- 238
-		local count = #promises -- 239
-		local reasons = { } -- 240
-		if count == 0 then -- 241
-			p:Reject("No promises to resolve") -- 241
-		end -- 241
-		for i, promise in ipairs(promises) do -- 242
-			promise:Then(function(value) -- 243
-				return p:Resolve(value, function(reason) -- 244
-					reasons[i] = reason -- 245
-					count = count - 1 -- 246
-					if count == 0 then -- 247
-						return p:Resolve(reasons) -- 247
-					end -- 247
-				end) -- 247
-			end) -- 243
-		end -- 247
-		return p -- 248
-	end -- 237
-	self.Race = function(promises) -- 250
-		local p = Promise() -- 251
-		for _index_0 = 1, #promises do -- 252
-			local promise = promises[_index_0] -- 252
-			promise:Then(function(value) -- 253
-				return p:Resolve(value, function(reason) -- 254
-					return p:Reject(reason) -- 254
-				end) -- 254
-			end) -- 253
-		end -- 254
-		return p -- 255
-	end -- 250
-	self.Async = function(fn) -- 257
-		return function(...) -- 257
-			local p = Promise() -- 258
-			local co = coroutine.create(function(...) -- 259
-				do -- 260
-					local success, result = xpcall(fn, function(err) -- 260
+	self.Resolve = function(value) -- 194
+		local _with_0 = Promise() -- 195
+		_with_0:Resolve(value) -- 196
+		return _with_0 -- 195
+	end -- 194
+	self.Reject = function(reason) -- 198
+		local _with_0 = Promise() -- 199
+		_with_0:Reject(reason) -- 200
+		return _with_0 -- 199
+	end -- 198
+	self.All = function(promises) -- 202
+		local p = Promise() -- 203
+		local count = #promises -- 204
+		local values = { } -- 205
+		if count == 0 then -- 206
+			p:Resolve(values) -- 206
+		end -- 206
+		for i, promise in ipairs(promises) do -- 207
+			if Promise.IsPromise(promise) then -- 208
+				promise:Then(function(value) -- 209
+					values[i] = value -- 210
+					count = count - 1 -- 211
+					if count == 0 then -- 212
+						return p:Resolve(values) -- 212
+					end -- 212
+				end, function(self, reason) -- 213
+					return p:Reject(reason) -- 213
+				end) -- 209
+			else -- 215
+				values[i] = promise -- 215
+				count = count - 1 -- 216
+				if count == 0 then -- 217
+					p:Resolve(values) -- 217
+				end -- 217
+			end -- 208
+		end -- 217
+		return p -- 218
+	end -- 202
+	self.AllSettled = function(promises) -- 220
+		local p = Promise() -- 221
+		local count = #promises -- 222
+		local values = { } -- 223
+		if count == 0 then -- 224
+			p:Resolve(values) -- 224
+		end -- 224
+		for i, promise in ipairs(promises) do -- 225
+			promise:Then(function(value) -- 226
+				values[i] = { -- 227
+					status = "fulfilled", -- 227
+					value = value -- 227
+				} -- 227
+				count = count - 1 -- 228
+				if count == 0 then -- 229
+					return p:Resolve(values) -- 229
+				end -- 229
+			end, function(reason) -- 230
+				values[i] = { -- 231
+					status = "rejected", -- 231
+					reason = reason -- 231
+				} -- 231
+				count = count - 1 -- 232
+				if count == 0 then -- 233
+					return p:Resolve(values) -- 233
+				end -- 233
+			end) -- 226
+		end -- 233
+		return p -- 234
+	end -- 220
+	self.Any = function(promises) -- 236
+		local p = Promise() -- 237
+		local count = #promises -- 238
+		local reasons = { } -- 239
+		if count == 0 then -- 240
+			p:Reject("No promises to resolve") -- 240
+		end -- 240
+		for i, promise in ipairs(promises) do -- 241
+			promise:Then(function(value) -- 242
+				return p:Resolve(value, function(reason) -- 243
+					reasons[i] = reason -- 244
+					count = count - 1 -- 245
+					if count == 0 then -- 246
+						return p:Resolve(reasons) -- 246
+					end -- 246
+				end) -- 246
+			end) -- 242
+		end -- 246
+		return p -- 247
+	end -- 236
+	self.Race = function(promises) -- 249
+		local p = Promise() -- 250
+		for _index_0 = 1, #promises do -- 251
+			local promise = promises[_index_0] -- 251
+			promise:Then(function(value) -- 252
+				return p:Resolve(value, function(reason) -- 253
+					return p:Reject(reason) -- 253
+				end) -- 253
+			end) -- 252
+		end -- 253
+		return p -- 254
+	end -- 249
+	self.Async = function(fn) -- 256
+		return function(...) -- 256
+			local p = Promise() -- 257
+			local co = coroutine.create(function(...) -- 258
+				do -- 259
+					local success, result = xpcall(fn, function(err) -- 259
 						-- TODO save stacktrace and pass it to reject
-						return p:Reject(err) -- 263
-					end, ...) -- 260
-					if success then -- 260
-						return p:Resolve(result) -- 264
-					end -- 260
-				end -- 263
-			end) -- 259
-			coroutine.resume(co, ...) -- 266
-			return p -- 267
-		end -- 267
-	end -- 257
-	self.Delay = function(time) -- 304
-		local p = Promise() -- 305
-		timer.Simple(time, function() -- 306
-			return p:Resolve() -- 306
-		end) -- 306
-		return p -- 307
-	end -- 304
-	self.HTTP = function(options) -- 309
-		local p = Promise() -- 310
-		options.success = function(code, body, headers) -- 311
-			return p:Resolve({ -- 312
-				code = code, -- 312
-				body = body, -- 312
-				headers = headers -- 312
-			}) -- 312
-		end -- 311
-		options.failed = function(err) -- 313
-			p:Reject(HTTPError(err)) -- 314
-			return -- 315
-		end -- 313
-		do -- 316
-			local ok = HTTP(options) -- 316
-			if not ok then -- 316
-				p:Reject(HTTPError("failed to make http request")) -- 317
-			end -- 316
-		end -- 316
-		return p -- 318
-	end -- 309
-	self.__base.resolve = self.__base.Resolve -- 321
-	self.__base.reject = self.__base.Reject -- 322
-	self.__base["then"] = self.__base.Then -- 323
-	self.__base.next = self.__base.Then -- 324
-	self.__base.andThen = self.__base.Then -- 325
-	self.__base.catch = self.__base.Catch -- 326
-	self.__base.finally = self.__base.Finally -- 327
-	self.__base.saveAwait = self.__base.SafeAwait -- 328
-	self.__base.await = self.__base.Await -- 329
-	self.resolve = self.Resolve -- 330
-	self.reject = self.Reject -- 331
-	self.all = self.All -- 332
-	self.allSettled = self.AllSettled -- 333
-	self.any = self.Any -- 334
-	self.race = self.Race -- 335
-	self.async = self.Async -- 336
-	self.delay = self.Delay -- 337
-	self.http = self.HTTP -- 338
+						return p:Reject(err) -- 262
+					end, ...) -- 259
+					if success then -- 259
+						return p:Resolve(result) -- 263
+					end -- 259
+				end -- 262
+			end) -- 258
+			coroutine.resume(co, ...) -- 265
+			return p -- 266
+		end -- 266
+	end -- 256
+	self.Delay = function(time) -- 303
+		local p = Promise() -- 304
+		timer.Simple(time, function() -- 305
+			return p:Resolve() -- 305
+		end) -- 305
+		return p -- 306
+	end -- 303
+	self.HTTP = function(options) -- 308
+		local p = Promise() -- 309
+		options.success = function(code, body, headers) -- 310
+			return p:Resolve({ -- 311
+				code = code, -- 311
+				body = body, -- 311
+				headers = headers -- 311
+			}) -- 311
+		end -- 310
+		options.failed = function(err) -- 312
+			p:Reject(HTTPError(err)) -- 313
+			return -- 314
+		end -- 312
+		do -- 315
+			local ok = HTTP(options) -- 315
+			if not ok then -- 315
+				p:Reject(HTTPError("failed to make http request")) -- 316
+			end -- 315
+		end -- 315
+		return p -- 317
+	end -- 308
+	self.__base.resolve = self.__base.Resolve -- 320
+	self.__base.reject = self.__base.Reject -- 321
+	self.__base["then"] = self.__base.Then -- 322
+	self.__base.next = self.__base.Then -- 323
+	self.__base.andThen = self.__base.Then -- 324
+	self.__base.catch = self.__base.Catch -- 325
+	self.__base.finally = self.__base.Finally -- 326
+	self.__base.saveAwait = self.__base.SafeAwait -- 327
+	self.__base.await = self.__base.Await -- 328
+	self.resolve = self.Resolve -- 329
+	self.reject = self.Reject -- 330
+	self.all = self.All -- 331
+	self.allSettled = self.AllSettled -- 332
+	self.any = self.Any -- 333
+	self.race = self.Race -- 334
+	self.async = self.Async -- 335
+	self.delay = self.Delay -- 336
+	self.http = self.HTTP -- 337
 	Promise = _class_0 -- 66
-end -- 338
-Promise.HTTPError = HTTPError -- 340
-_module_0 = Promise -- 341
-return _module_0 -- 341
+end -- 337
+Promise.HTTPError = HTTPError -- 339
+_module_0 = Promise -- 340
+return _module_0 -- 340
