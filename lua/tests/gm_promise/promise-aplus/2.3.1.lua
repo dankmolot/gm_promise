@@ -14,8 +14,8 @@ return {
                 end)
                 
                 promise:Then(nil, function(reason)
-                    -- FIXME expect reason to be a TypeError
-                    expect(reason).to.exist()
+                    expect(reason).to.beA("table")
+                    expect(reason.name).to.eq("TypeError")
                     done()
                 end)
             end
@@ -31,8 +31,8 @@ return {
                 end)
 
                 promise:Then(nil, function(reason)
-                    -- FIXME expect reason to be a TypeError
-                    expect(reason).to.exist()
+                    expect(reason).to.beA("table")
+                    expect(reason.name).to.eq("TypeError")
                     done()
                 end)
             end
