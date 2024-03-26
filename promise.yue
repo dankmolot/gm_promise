@@ -21,7 +21,7 @@
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
     SOFTWARE.
 --]]
-import Error, TypeError from "error.lua"
+import Error, TypeError from include "error.lua"
 
 timer_Simple = timer.Simple
 isfunction = isfunction
