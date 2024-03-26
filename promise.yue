@@ -21,12 +21,12 @@
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
     SOFTWARE.
 --]]
-:Error, :TypeError = include "error.lua"
+import Error, TypeError from "error.lua"
 
 timer_Simple = timer.Simple
 isfunction = isfunction
 istable = istable
-iscallable = (obj) -> 
+iscallable = (obj) ->
     if isfunction obj then return true
     if istable obj then
         meta = getmetatable obj
@@ -135,7 +135,7 @@ class Promise
         once_wrapper = once!
         onFulfill = once_wrapper (value) -> @_Resolve value
         onReject = once_wrapper (reason) -> @_Reject reason
-        unless ok, err = try thenable obj, onFulfill, onReject
+        unless ok, err := try thenable obj, onFulfill, onReject
             onReject err
 
     _Resolve: (value) =>
@@ -187,14 +187,14 @@ class Promise
         @queue[] = p
         @_Finalize!
         return p
-    
+
     Catch: (on_rejected) => @Then nil, on_rejected
     Finally: (on_finally) => @Then nil, nil, on_finally
-    
-    @Resolve: (value) -> 
+
+    @Resolve: (value) ->
         with Promise!
             \Resolve value
-    
+
     @Reject: (reason) ->
         with Promise!
             \Reject reason
@@ -203,7 +203,7 @@ class Promise
         p = Promise!
         count = #promises
         values = {}
-        if count == 0 then p\Resolve values 
+        if count == 0 then p\Resolve values
         for i, promise in ipairs promises
             if Promise.IsPromise promise
                 promise\Then (value) ->
@@ -232,7 +232,7 @@ class Promise
                     count -= 1
                     p\Resolve values if count == 0
         return p
-    
+
     @Any: (promises) ->
         p = Promise!
         count = #promises
@@ -256,9 +256,13 @@ class Promise
     @Async: (fn) -> (...) ->
         p = Promise!
         co = coroutine.create (...) ->
-            if success, result = try fn ...
+            if success, result := try fn ...
             catch err
                     -- TODO save stacktrace and pass it to reject
+                    if isstring err
+                        file, line, message = string.match err, "^([A-Za-z0-9%-_/.]+):(%d+): (.*)"
+                        if file and line
+                            err = RuntimeError message, file, line, 5
                     p\Reject err
                 p\Resolve result
 
@@ -282,7 +286,7 @@ class Promise
                 else
                     p\Then onResolve, onReject
                     return coroutine.yield!
-        elseif thenable = istable(p) and get_thenable p
+        elseif thenable := istable(p) and get_thenable p
             if iscallable thenable
                 try thenable p, onResolve, onReject
                 return coroutine.yield!
@@ -290,7 +294,7 @@ class Promise
                 return true, p
         else
             return true, p
-    
+
     Await: (p) ->
         awaitable = istable(p) and get_awaitable p
         if awaitable and not Promise.IsPromise p
@@ -302,9 +306,9 @@ class Promise
 
     @Delay: (time, value) ->
         p = Promise!
-        timer.Simple time, -> p\Resolve value
+        timer_Simple time, -> p\Resolve value
         return p
-    
+
     @HTTP: (options) ->
         p = Promise!
         options.success = (code, body, headers) ->
@@ -312,7 +316,7 @@ class Promise
         options.failed = (err) ->
             p\Reject HTTPError err
             return -- for better stacktrace
-        unless ok = HTTP options
+        unless ok := HTTP options
             p\Reject HTTPError "failed to make http request"
         return p
 
