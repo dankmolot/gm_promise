@@ -22,15 +22,22 @@ local _module_0 = nil
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
     SOFTWARE.
 --]]
-local Error, TypeError, RuntimeError
+local Error, TypeError, RuntimeError, PromiseError, isfunction, istable, isstring, getmetatable, pcall, xpcall, error, ipairs
 do
-	local _obj_0 = include("error.lua")
-	Error, TypeError, RuntimeError = _obj_0.Error, _obj_0.TypeError, _obj_0.RuntimeError
+	local _obj_0 = gpm.environment
+	Error, TypeError, RuntimeError, PromiseError, isfunction, istable, isstring, getmetatable, pcall, xpcall, error, ipairs = _obj_0.Error, _obj_0.TypeError, _obj_0.RuntimeError, _obj_0.PromiseError, _obj_0.isfunction, _obj_0.istable, _obj_0.isstring, _obj_0.getmetatable, _obj_0.pcall, _obj_0.xpcall, _obj_0.error, _obj_0.ipairs
 end
-local isfunction, istable, isstring, getmetatable, pcall, xpcall, error, ipairs = _G.isfunction, _G.istable, _G.isstring, _G.getmetatable, _G.pcall, _G.xpcall, _G.error, _G.ipairs
-local format, match = string.format, string.match
+local format, match
+do
+	local _obj_0 = gpm.environment.string
+	format, match = _obj_0.format, _obj_0.match
+end
 local create, resume, yield, running = coroutine.create, coroutine.resume, coroutine.yield, coroutine.running
-local remove = table.remove
+local remove
+do
+	local _obj_0 = gpm.environment.table
+	remove = _obj_0.remove
+end
 local setTimeout = timer.Simple
 local iscallable
 iscallable = function(obj)
@@ -107,51 +114,6 @@ do
 		_parent_0.__inherited(_parent_0, _class_0)
 	end
 	HTTPError = _class_0
-end
-local PromiseError
-do
-	local _class_0
-	local _parent_0 = Error
-	local _base_0 = { }
-	for _key_0, _val_0 in pairs(_parent_0.__base) do
-		if _base_0[_key_0] == nil and _key_0:match("^__") and not (_key_0 == "__index" and _val_0 == _parent_0.__base) then
-			_base_0[_key_0] = _val_0
-		end
-	end
-	if _base_0.__index == nil then
-		_base_0.__index = _base_0
-	end
-	setmetatable(_base_0, _parent_0.__base)
-	_class_0 = setmetatable({
-		__init = function(self, ...)
-			return _class_0.__parent.__init(self, ...)
-		end,
-		__base = _base_0,
-		__name = "PromiseError",
-		__parent = _parent_0
-	}, {
-		__index = function(cls, name)
-			local val = rawget(_base_0, name)
-			if val == nil then
-				local parent = rawget(cls, "__parent")
-				if parent then
-					return parent[name]
-				end
-			else
-				return val
-			end
-		end,
-		__call = function(cls, ...)
-			local _self_0 = setmetatable({ }, _base_0)
-			cls.__init(_self_0, ...)
-			return _self_0
-		end
-	})
-	_base_0.__class = _class_0
-	if _parent_0.__inherited then
-		_parent_0.__inherited(_parent_0, _class_0)
-	end
-	PromiseError = _class_0
 end
 local Promise
 do
@@ -628,7 +590,6 @@ do
 	self.delay = self.Delay
 	self.http = self.HTTP
 	self.PromiseError = PromiseError
-	self.HTTPError = HTTPError
 	Promise = _class_0
 end
 _module_0 = Promise

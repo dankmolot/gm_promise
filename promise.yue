@@ -21,11 +21,10 @@
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
     SOFTWARE.
 --]]
-import Error, TypeError, RuntimeError from include "error.lua"
-import isfunction, istable, isstring, getmetatable, pcall, xpcall, error, ipairs from _G
-import format, match from string
+import Error, TypeError, RuntimeError, PromiseError, isfunction, istable, isstring, getmetatable, pcall, xpcall, error, ipairs from gpm.environment
+import format, match from gpm.environment.string
 import create, resume, yield, running from coroutine
-import remove from table
+import remove from gpm.environment.table
 
 setTimeout = timer.Simple
 
@@ -53,7 +52,6 @@ once = ->
             return wrappedFn(...)
 
 class HTTPError extends Error
-class PromiseError extends Error
 
 class Promise
     @VERSION: "2.1.0"
@@ -421,6 +419,5 @@ class Promise
     @http = @HTTP
 
     @PromiseError = PromiseError
-    @HTTPError = HTTPError
 
 export default Promise
