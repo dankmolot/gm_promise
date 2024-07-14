@@ -30,6 +30,7 @@ end
 local isfunction, istable, isstring, getmetatable, pcall, xpcall, error, ipairs = _G.isfunction, _G.istable, _G.isstring, _G.getmetatable, _G.pcall, _G.xpcall, _G.error, _G.ipairs
 local format, match = string.format, string.match
 local create, resume, yield, running = coroutine.create, coroutine.resume, coroutine.yield, coroutine.running
+local remove = table.remove
 local setTimeout = timer.Simple
 local iscallable
 iscallable = function(obj)
@@ -155,7 +156,7 @@ end
 local Promise
 do
 	local _class_0
-	local STATE_PENDING, STATE_FULFILLED, STATE_REJECTED, IsPromise, finalizePromiseUnsafe, finalizePromise, finalize, fulfill, resolveThenable, resolve, reject, Resolve, Reject, Then, Catch, Finally, transformError, SafeAwait, Await
+	local STATE_PENDING, STATE_FULFILLED, STATE_REJECTED, IsPromise, finalizePromiseUnsafe, finalizePromise, finalize, fulfill, resolveThenable, resolve, reject, Resolve, Reject, Then, Catch, Finally, CALL_STACK, transformError, SafeAwait, Await
 	local _base_0 = {
 		__tostring = function(self)
 			local _exp_0 = self.state
@@ -363,11 +364,40 @@ do
 	Finally = function(self, onFinally)
 		return Then(self, nil, nil, onFinally)
 	end
+	CALL_STACK = { }
 	transformError = function(err)
 		if isstring(err) then
 			local file, line, message = match(err, "^([A-Za-z0-9%-_/.]+):(%d+): (.*)")
 			if file and line then
-				err = RuntimeError(message, file, line, 5)
+				err = RuntimeError(message, file, line, 4)
+			end
+		end
+		if Error.is(err) then
+			local stack = err.stack
+			local length = #stack
+			if length >= 2 and stack[length - 1].name == "xpcall" then
+				stack[length - 1] = nil
+				stack[length] = nil
+			end
+			if #stack == 0 then
+				err.fileName = nil
+				err.lineNumber = nil
+			end
+			local lastStack = CALL_STACK[#CALL_STACK]
+			if lastStack then
+				if #stack > 0 and not stack[#stack].name then
+					stack[#stack].name = lastStack[1].name
+				end
+				-- Append previous stack to the current stack
+				for _index_0 = 2, #lastStack do
+					local entry = lastStack[_index_0]
+					stack[#stack + 1] = entry
+				end
+			end
+			local first = stack[1]
+			if first then
+				self.fileName = self.fileName or first.short_src
+				self.lineNumber = self.lineNumber or first.currentline
 			end
 		end
 		return err
@@ -375,14 +405,15 @@ do
 	self.Async = function(fn)
 		return function(...)
 			local p = Promise()
+			CALL_STACK[#CALL_STACK + 1] = Error.captureStack()
 			local co = create(function(...)
-				-- TODO: save stacktrace and pass it to reject
 				local success, result = xpcall(fn, transformError, ...)
 				if success then
-					return Resolve(p, result)
+					Resolve(p, result)
 				else
-					return Reject(p, result)
+					Reject(p, result)
 				end
+				CALL_STACK[#CALL_STACK] = nil
 			end)
 			resume(co, ...)
 			return p
@@ -393,12 +424,31 @@ do
 		if not co then
 			return false, PromiseError("Cannot await in main thread")
 		end
+		local _success, _value, waiting, stack
+		local finish
+		finish = function(success, value)
+			if waiting then
+				CALL_STACK[#CALL_STACK + 1] = stack
+				return resume(co, success, value)
+			else
+				_success, _value = success, value
+			end
+		end
+		local wait
+		wait = function()
+			if _success ~= nil then
+				return _success, _value
+			end
+			waiting = true
+			stack = remove(CALL_STACK)
+			return yield()
+		end
 		local once_wrapper = once()
 		local onResolve = once_wrapper(function(value)
-			return resume(co, true, value)
+			return finish(true, value)
 		end)
 		local onReject = once_wrapper(function(reason)
-			return resume(co, false, reason)
+			return finish(false, reason)
 		end)
 		if IsPromise(p) then
 			local _exp_0 = p.state
@@ -408,13 +458,13 @@ do
 				return false, p.reason
 			else
 				Then(p, onResolve, onReject)
-				return yield()
+				return wait()
 			end
 		end
 		local thenable = istable(p) and getThenable(p)
 		if iscallable(thenable) then
 			pcall(thenable, p, onResolve, onReject)
-			return yield()
+			return wait()
 		end
 		return true, p
 	end
