@@ -297,7 +297,7 @@ do
 		elseif istable(value) then
 			local ok, thenable = pcall(getThenable, value)
 			if not ok then
-				return self:_Reject(thenable)
+				return reject(self, thenable)
 			end
 			if thenable then
 				return resolveThenable(self, value, thenable)

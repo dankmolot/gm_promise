@@ -153,7 +153,7 @@ class Promise
                 finalizePromise( value, @ )
         elseif istable value
             ok, thenable = try getThenable(value)
-            unless ok then return @_Reject thenable
+            unless ok then return reject( @, thenable )
 
             if thenable
                 resolveThenable( @, value, thenable )
