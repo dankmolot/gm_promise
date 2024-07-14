@@ -25,6 +25,7 @@ import Error, TypeError, RuntimeError from include "error.lua"
 import isfunction, istable, isstring, getmetatable, pcall, xpcall, error, ipairs from _G
 import format, match from string
 import create, resume, yield, running from coroutine
+import remove from table
 
 setTimeout = timer.Simple
 
@@ -198,11 +199,38 @@ class Promise
     Catch = (onRejected) => return Then( @, nil, onRejected )
     Finally = (onFinally) => return Then( @, nil, nil, onFinally )
 
+    CALL_STACK = {}
+
     transformError = (err) ->
         if isstring( err )
             file, line, message = match( err, "^([A-Za-z0-9%-_/.]+):(%d+): (.*)" )
             if file and line
-                err = RuntimeError( message, file, line, 5 )
+                err = RuntimeError( message, file, line, 4 )
+
+        if Error.is( err )
+            stack = err.stack
+            length = #stack
+
+            if length >= 2 and stack[length - 1].name == "xpcall"
+                stack[length - 1] = nil -- remove xpcall stack
+                stack[length] = nil -- remove promise wrapper stack
+
+            if #stack == 0 -- if stack is empty, remove debug information
+                err.fileName = nil
+                err.lineNumber = nil
+
+            lastStack = CALL_STACK[#CALL_STACK]
+            if lastStack
+                if #stack > 0 and not stack[#stack].name
+                    stack[#stack].name = lastStack[1].name -- set previous stack name since it's the name of the function
+
+                -- Append previous stack to the current stack
+                for entry in *lastStack[2,]
+                    stack[] = entry
+
+            if first := stack[1]
+                @fileName or= first.short_src
+                @lineNumber or= first.currentline
 
         return err
 
@@ -210,26 +238,44 @@ class Promise
         return (...) ->
             p = Promise!
 
+            CALL_STACK[] = Error.captureStack() -- push stack
+
             co = create (...) ->
-                -- TODO: save stacktrace and pass it to reject
                 success, result = xpcall( fn, transformError, ... )
                 if success
                     Resolve( p, result )
                 else
                     Reject( p, result )
 
+                CALL_STACK[#CALL_STACK] = nil -- pop stack
+
             resume( co, ... )
             return p
 
-    -- TODO: better await for thenables (if the resolve in the same tick)
     SafeAwait = (p) ->
         co = running!
         unless co
             return false, PromiseError "Cannot await in main thread"
 
+        local _success, _value, waiting, stack
+
+        finish = (success, value) ->
+            if waiting
+                CALL_STACK[] = stack -- push previous stack
+                resume co, success, value
+            else
+                _success, _value = success, value
+        
+        wait = ->
+            if _success != nil
+                return _success, _value
+            waiting = true
+            stack = remove( CALL_STACK ) -- pop current stack
+            return yield!
+
         once_wrapper = once!
-        onResolve = once_wrapper (value) -> resume co, true, value
-        onReject = once_wrapper (reason) -> resume co, false, reason
+        onResolve = once_wrapper (value) -> finish( true, value )
+        onReject = once_wrapper (reason) -> finish( false, reason )
 
         if IsPromise p
             switch p.state
@@ -239,12 +285,12 @@ class Promise
                     return false, p.reason
                 else
                     Then( p, onResolve, onReject )
-                    return yield!
+                    return wait!
         
         thenable = istable(p) and getThenable(p)
         if iscallable( thenable )
             pcall( thenable, p, onResolve, onReject )
-            return yield!
+            return wait!
 
         return true, p
 
