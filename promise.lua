@@ -224,7 +224,7 @@ do
 				end
 			elseif STATE_REJECTED == _exp_0 then
 				if onRejected then
-					resolve(self, onRejected(self.reason))
+					resolve(p, onRejected(self.reason))
 				else
 					reject(p, self.reason)
 				end

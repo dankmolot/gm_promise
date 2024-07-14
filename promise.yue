@@ -97,7 +97,7 @@ class Promise
                 if onFulfilled then resolve( p, onFulfilled(@value) )
                 else resolve( p, @value )
             when STATE_REJECTED
-                if onRejected then resolve( @, onRejected(@reason) )
+                if onRejected then resolve( p, onRejected(@reason) )
                 else reject( p, @reason )
 
         if onFinally
@@ -139,6 +139,7 @@ class Promise
 
         if value == @
             return reject @, TypeError "Cannot resolve a promise with itself"
+
 
         @resolving = true
         @onFulfilled = nil
